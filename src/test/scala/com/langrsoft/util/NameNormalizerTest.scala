@@ -44,8 +44,6 @@ class NameNormalizerTest extends FunSpec with ShouldMatchers with BeforeAndAfter
         shouldBe("Martin, George R. R.")
     }
 
-    // TODO how to run only one test
-
     // ***extra credit***
 
     ignore("appends suffixes") {

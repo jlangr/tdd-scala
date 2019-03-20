@@ -10,10 +10,9 @@ class NameNormalizer {
       s"${lastName(name)}, ${firstName(name)}${middleNames(name)}${suffix(fullName)}"
   }
 
-  private def throwWhenNameContainsExcessCommas(fullName: String) = {
+  private def throwWhenNameContainsExcessCommas(fullName: String) =
     if (fullName.count(c => c == ',') > 1)
       throw new IllegalArgumentException
-  }
 
   private def suffixSplit(fullName: String) =
     if (!fullName.contains(","))
@@ -25,7 +24,7 @@ class NameNormalizer {
       (mainName, s",$suffix")
     }
 
-  private def removeSuffix(fullName: String): String = {
+  private def removeSuffix(fullName: String) = {
     val (mainName, _) = suffixSplit(fullName)
     mainName
   }
