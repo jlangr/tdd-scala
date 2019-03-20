@@ -11,7 +11,7 @@ class NameNormalizer {
   }
 
   private def throwWhenNameContainsExcessCommas(fullName: String) =
-    if (fullName.count(c => c == ',') > 1)
+    if (fullName.count(_ == ',') > 1)
       throw new IllegalArgumentException
 
   private def suffixSplit(fullName: String) =
