@@ -14,5 +14,4 @@ class RomanTest extends FunSpec with ShouldMatchers with BeforeAndAfter {
       Roman.convert(50) shouldBe "L"
     }
   }
-
 }

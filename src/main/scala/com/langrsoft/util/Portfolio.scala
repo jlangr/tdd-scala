@@ -5,6 +5,8 @@ import scala.collection.mutable.HashMap
 class Portfolio {
   var symbols = HashMap[String, Integer]()
 
+  def value: Integer = 0
+
   def isEmpty = size == 0
 
   def size = symbols.size
