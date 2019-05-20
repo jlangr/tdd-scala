@@ -7,12 +7,12 @@ import CheckoutJsonSupport._
 
 class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAndAfter with ScalatestRouteTest {
   describe("checkout JSON support") {
-    val itemJson = "{\"upc\":\"444\",\"description\":\"Eggs\",\"price\":4.44}"
+    val itemJson = "{\"id\":\"1\",\"upc\":\"444\",\"description\":\"Eggs\",\"price\":4.44}"
     val checkoutJson = "{" +
       "\"id\":\"42\"," +
       "\"memberId\":\"719-287-GEEK\"," +
       "\"items\":[" +
-      "{\"upc\":\"111222333\",\"description\":\"milk\",\"price\":4.98}" +
+      "{\"id\":\"1\",\"upc\":\"111222333\",\"description\":\"milk\",\"price\":4.98}" +
       "]}"
 
     it("decodes a checkout") {
@@ -25,13 +25,13 @@ class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAnd
     }
 
     it("encodes a checkout") {
-      val checkout = Checkout("42", "719-287-GEEK", List(Item("111222333", "milk", BigDecimal(4.98))))
+      val checkout = Checkout("42", "719-287-GEEK", List(Item("1", "111222333", "milk", BigDecimal(4.98))))
 
       checkout.toJson.toString shouldEqual(checkoutJson)
     }
 
     it("encodes an item") {
-      val item = Item("444", "Eggs", BigDecimal(4.44))
+      val item = Item("1", "444", "Eggs", BigDecimal(4.44))
 
       item.toJson.toString shouldEqual(itemJson)
     }
@@ -39,6 +39,7 @@ class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAnd
     it("decodes an item") {
       val item = itemJson.parseJson.convertTo[Item]
 
+      item.id shouldEqual("1")
       item.upc shouldEqual("444")
       item.description shouldEqual("Eggs")
       item.price shouldEqual(BigDecimal(4.44))

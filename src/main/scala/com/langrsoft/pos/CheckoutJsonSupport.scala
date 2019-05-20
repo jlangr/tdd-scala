@@ -3,12 +3,12 @@ package com.langrsoft.pos
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json._
 
-case class Item(upc: String, description: String, price: BigDecimal)
+case class Item(id: String, upc: String, description: String, price: BigDecimal)
 
 case class Checkout(id: String, var memberId: String, var items: List[Item])
 
 object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit val anItem = jsonFormat3(Item)
+  implicit val anItem = jsonFormat4(Item)
 
   implicit object CheckoutJsonFormat extends RootJsonFormat[Checkout] {
     def write(checkout: Checkout) = JsObject(Map(

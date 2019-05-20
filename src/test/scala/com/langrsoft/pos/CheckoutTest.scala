@@ -51,10 +51,12 @@ class CheckoutTest extends FunSpec
         val itemDatabase = mockItemDatabase
       }
       val upc = "444"
-      when(mockItemDatabase.retrieveItem("444")).thenReturn(Item("444", "Eggs", BigDecimal(4.44)))
+      when(mockItemDatabase.retrieveItem("444")).thenReturn(Item("1", "444", "Eggs", BigDecimal(4.44)))
       val id = postCheckout
+
       Post(s"/checkouts/${id}/items", upc) ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
-        responseAs[String].parseJson.convertTo[Item] shouldEqual(Item(upc, "Eggs", BigDecimal(4.44)))
+
+        responseAs[String].parseJson.convertTo[Item] shouldEqual(Item("1", upc, "Eggs", BigDecimal(4.44)))
       }
     }
   }
