@@ -16,7 +16,7 @@ trait CheckoutRoutes {
   def routes() : Route = {
     concat(pathPrefix("checkouts") {
       concat(
-        path(IntNumber / "items") {
+        path(Segment / "items") {
           checkoutId => { post { postItem(checkoutId) } }
         },
         path("clear") {
@@ -31,36 +31,43 @@ trait CheckoutRoutes {
     })
   }
 
-  private def postItem(checkoutId: Int) = {
-    entity(as[String]) { upc =>
-      val item = itemDatabase.retrieveItem(upc)
-      complete(StatusCodes.Accepted, item)
+  private def postItem(checkoutId: String) = {
+    val checkout: Option[Checkout] = checkouts.toList.find(checkout => { checkout.id == checkoutId })
+    if (checkout.isEmpty)
+      complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
+    else {
+      entity(as[String]) { upc =>
+        val item = itemDatabase.retrieveItem(upc)
+        if (item == null)
+          complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
+        else
+          complete(StatusCodes.Accepted, item)
+      }
     }
   }
 
-  def clearAllCheckouts() = {
+  private def clearAllCheckouts() = {
     checkouts.clear()
     complete(StatusCodes.Accepted)
   }
 
-  def getAllCheckouts(): Route = {
+  private def getAllCheckouts(): Route = {
     complete(checkouts.toList)
   }
 
-  def getCheckout() = {
+  private def getCheckout() = {
     parameters('id.as[String]) { id => {
       val checkout: Option[Checkout] = checkouts.toList.find(checkout => checkout.id == id)
       complete(checkout.get)
     }}
   }
 
-  def postCheckout() = {
+  private def postCheckout() = {
     val checkout = Checkout(nextId().toString(), "", List())
     checkout.memberId = s"member #${checkout.id}"
     checkouts += checkout
     complete(StatusCodes.Created, checkout.id)
   }
-
 }
 
 object CheckoutRoutesImpl extends CheckoutRoutes {
