@@ -41,6 +41,7 @@ trait CheckoutRoutes {
       val member = memberDatabase.memberLookup(phoneNumber)
       val checkout: Checkout = retrievedCheckout.get
       checkout.memberId = member.id
+      checkout.member = member
       complete(StatusCodes.Accepted)
     }
   }
@@ -80,7 +81,7 @@ trait CheckoutRoutes {
   }
 
   private def postCheckout() = {
-    val checkout = Checkout(nextId().toString(), "", List())
+    val checkout = Checkout(nextId().toString(), "", null, List())
     checkout.memberId = s"member #${checkout.id}"
     checkouts += checkout
     complete(StatusCodes.Created, checkout.id)
