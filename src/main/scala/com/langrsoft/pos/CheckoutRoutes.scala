@@ -7,23 +7,34 @@ import CheckoutJsonSupport._
 
 import scala.collection.mutable.ListBuffer
 
-object CheckoutRoutes {
+trait CheckoutRoutes {
   var checkouts: ListBuffer[Checkout] = ListBuffer[Checkout]()
+  val itemDatabase: Inventory
 
-  def nextId() = {
-    checkouts.length + 1
-  }
+  def nextId() = { checkouts.length + 1 }
 
   def routes() : Route = {
-    path("checkouts") {
-      post { createCheckout() } ~
-      get { getCheckout() }
-    } ~
-    path("clearcheckouts") {
-      post { clearAllCheckouts() }
-    } ~
+    concat(pathPrefix("checkouts") {
+      concat(
+        path(IntNumber / "items") {
+          checkoutId => { post { postItem(checkoutId) } }
+        },
+        path("clear") {
+          clearAllCheckouts()
+        },
+        post { postCheckout() },
+        get { getCheckout() }
+      )
+    },
     path("allCheckouts") {
       get { getAllCheckouts() }
+    })
+  }
+
+  private def postItem(checkoutId: Int) = {
+    entity(as[String]) { upc =>
+      val item = itemDatabase.retrieveItem(upc)
+      complete(StatusCodes.Accepted, item)
     }
   }
 
@@ -43,15 +54,16 @@ object CheckoutRoutes {
     }}
   }
 
-  def createCheckout() = {
+  def postCheckout() = {
     val checkout = Checkout(nextId().toString(), "", List())
     checkout.memberId = s"member #${checkout.id}"
     checkouts += checkout
     complete(StatusCodes.Created, checkout.id)
   }
 
-//    entity(as[Checkout]) { entity =>
-//    }
 }
 
+object CheckoutRoutesImpl extends CheckoutRoutes {
+  val itemDatabase = new Inventory()
+}
 //  val stuff: concurrent.Future[String] = Unmarshal(entity).to[String]

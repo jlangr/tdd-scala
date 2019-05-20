@@ -8,7 +8,7 @@ case class Item(upc: String, description: String, price: BigDecimal)
 case class Checkout(id: String, var memberId: String, var items: List[Item])
 
 object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit val item = jsonFormat3(Item)
+  implicit val anItem = jsonFormat3(Item)
 
   implicit object CheckoutJsonFormat extends RootJsonFormat[Checkout] {
     def write(checkout: Checkout) = JsObject(Map(
@@ -20,9 +20,7 @@ object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     def read(value: JsValue): Checkout = {
       value.asJsObject.getFields("id", "memberId", "items") match {
         case Seq(JsString(id), JsString(description), JsArray(items)) =>
-          new Checkout(id, description, //List()
-            items.map(_.convertTo[Item]).to[List]
-          )
+          new Checkout(id, description, items.map(_.convertTo[Item]).to[List])
       }
     }
   }

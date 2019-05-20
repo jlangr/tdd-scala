@@ -22,7 +22,7 @@ object Server {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher // needed for future flatmap/oncomplete funcs
 
-    val route:Route = CheckoutRoutes.routes()
+    val route:Route = CheckoutRoutesImpl.routes()
 
     val bindingFuture = Http().bindAndHandle(route,"localhost",9898)
 
