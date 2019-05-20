@@ -11,12 +11,13 @@ class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAnd
     val checkoutJson = "{" +
       "\"id\":\"42\"," +
       "\"memberId\":\"719-287-GEEK\"," +
-      "\"member\":{" +
-      "\"id\":\"42\",\"phoneNumber\":\"719-287-4335\",\"name\":\"Jeff Languid\",\"discount\":0.1" +
-      "}," +
       "\"items\":[" +
       "{\"id\":\"1\",\"upc\":\"111222333\",\"description\":\"milk\",\"price\":4.98}" +
-      "]}"
+      "]," +
+      "\"member\":{" +
+      "\"id\":\"42\",\"phoneNumber\":\"719-287-4335\",\"name\":\"Jeff Languid\",\"discount\":0.1" +
+      "}" +
+      "}"
 
     it("decodes a checkout") {
       val checkout = checkoutJson.parseJson.convertTo[Checkout]
@@ -39,14 +40,15 @@ class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAnd
     }
 
     it("encodes null member") {
-      val checkout = Checkout("42", "719-287-GEEK", null, List())
+      val checkout = Checkout("42", "719-287-GEEK", List(), null)
       checkout.toJson.toString shouldEqual(noMemberCheckout)
     }
 
     it("encodes a checkout") {
       val checkout = Checkout("42", "719-287-GEEK",
-        Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1)),
-        List(Item("1", "111222333", "milk", BigDecimal(4.98))))
+        List(Item("1", "111222333", "milk", BigDecimal(4.98))),
+        Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1))
+      )
 
       checkout.toJson.toString shouldEqual(checkoutJson)
     }

@@ -81,7 +81,7 @@ trait CheckoutRoutes {
   }
 
   private def postCheckout() = {
-    val checkout = Checkout(nextId().toString(), "", null, List())
+    val checkout = Checkout(nextId().toString(), "", List(), null)
     checkout.memberId = s"member #${checkout.id}"
     checkouts += checkout
     complete(StatusCodes.Created, checkout.id)
