@@ -32,8 +32,8 @@ trait CheckoutRoutes {
   }
 
   private def postItem(checkoutId: String) = {
-    val checkout: Option[Checkout] = checkouts.toList.find(checkout => { checkout.id == checkoutId })
-    if (checkout.isEmpty)
+    val retrievedCheckout: Option[Checkout] = checkouts.toList.find(checkout => { checkout.id == checkoutId })
+    if (retrievedCheckout.isEmpty)
       complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
     else {
       entity(as[String]) { upc =>
@@ -41,8 +41,8 @@ trait CheckoutRoutes {
         if (item == null)
           complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
         else {
-          val ck: Checkout = checkout.get
-          ck.items = List.concat(ck.items, List(item))
+          val checkout: Checkout = retrievedCheckout.get
+          checkout.items = List.concat(checkout.items, List(item))
           complete(StatusCodes.Accepted, item)
         }
       }

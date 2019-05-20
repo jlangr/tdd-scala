@@ -61,14 +61,18 @@ class CheckoutTest extends FunSpec
       }
     }
 
-    it("attaches item to checkout on post") {
+    it("attaches items to checkout on post") {
       when(mockItemDatabase.retrieveItem("333")).thenReturn(Item("1", "333", "Milk", BigDecimal(2.79)))
+      when(mockItemDatabase.retrieveItem("444")).thenReturn(Item("2", "444", "Eggs", BigDecimal(4.44)))
 
       Post(s"/checkouts/${id1}/items", "333") ~> testRoutes ~> check {}
+      Post(s"/checkouts/${id1}/items", "444") ~> testRoutes ~> check {}
 
       Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
         val checkout = responseAs[String].parseJson.convertTo[Checkout]
-        checkout.items shouldEqual List(Item("1", "333", "Milk", BigDecimal(2.79)))
+        checkout.items shouldEqual List(
+          Item("1", "333", "Milk", BigDecimal(2.79)),
+          Item("2", "444", "Eggs", BigDecimal(4.44)))
       }
     }
 
