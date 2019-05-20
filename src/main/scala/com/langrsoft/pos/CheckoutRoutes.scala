@@ -37,11 +37,14 @@ trait CheckoutRoutes {
       complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
     else {
       entity(as[String]) { upc =>
-        val item = itemDatabase.retrieveItem(upc)
+        val item: Item = itemDatabase.retrieveItem(upc)
         if (item == null)
           complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
-        else
+        else {
+          val ck: Checkout = checkout.get
+          ck.items = List.concat(ck.items, List(item))
           complete(StatusCodes.Accepted, item)
+        }
       }
     }
   }

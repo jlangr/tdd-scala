@@ -48,12 +48,27 @@ class CheckoutTest extends FunSpec
     }
   }
 
+  // TODO async at server?
+
+  // TODO change GET checkout from query param
+
   describe("items") {
     it("returns created line item on post") {
       when(mockItemDatabase.retrieveItem("444")).thenReturn(Item("1", "444", "Eggs", BigDecimal(4.44)))
 
       Post(s"/checkouts/${id1}/items", "444") ~> testRoutes ~> check {
         responseAs[String].parseJson.convertTo[Item] shouldEqual(Item("1", "444", "Eggs", BigDecimal(4.44)))
+      }
+    }
+
+    it("attaches item to checkout on post") {
+      when(mockItemDatabase.retrieveItem("333")).thenReturn(Item("1", "333", "Milk", BigDecimal(2.79)))
+
+      Post(s"/checkouts/${id1}/items", "333") ~> testRoutes ~> check {}
+
+      Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
+        val checkout = responseAs[String].parseJson.convertTo[Checkout]
+        checkout.items shouldEqual List(Item("1", "333", "Milk", BigDecimal(2.79)))
       }
     }
 
@@ -72,8 +87,6 @@ class CheckoutTest extends FunSpec
         responseAs[String] shouldEqual "invalid checkout id: 999"
       }
     }
-
-    // attaches item to checkout
   }
 
   private def jsArrayToArrayOf[T :JsonReader] = {
