@@ -10,6 +10,7 @@ import scala.collection.mutable.ListBuffer
 trait CheckoutRoutes {
   var checkouts: ListBuffer[Checkout] = ListBuffer[Checkout]()
   val itemDatabase: Inventory
+  val memberDatabase: MemberDatabase
 
   def nextId() = { checkouts.length + 1 }
 
@@ -18,6 +19,9 @@ trait CheckoutRoutes {
       concat(
         path(Segment / "items") {
           checkoutId => { post { postItem(checkoutId) } }
+        },
+        path(Segment / "member") {
+          checkoutId => { post { postMember(checkoutId) } }
         },
         path("clear") {
           clearAllCheckouts()
@@ -29,6 +33,16 @@ trait CheckoutRoutes {
     path("allCheckouts") {
       get { getAllCheckouts() }
     })
+  }
+
+  private def postMember(checkoutId: String) = {
+    val retrievedCheckout: Option[Checkout] = checkouts.toList.find(checkout => { checkout.id == checkoutId })
+    entity(as[String]) { phoneNumber =>
+      val member = memberDatabase.memberLookup(phoneNumber)
+      val checkout: Checkout = retrievedCheckout.get
+      checkout.memberId = member.id
+      complete(StatusCodes.Accepted)
+    }
   }
 
   private def postItem(checkoutId: String) = {
@@ -75,5 +89,6 @@ trait CheckoutRoutes {
 
 object CheckoutRoutesImpl extends CheckoutRoutes {
   val itemDatabase = new Inventory()
+  val memberDatabase = new MemberDatabase()
 }
 //  val stuff: concurrent.Future[String] = Unmarshal(entity).to[String]

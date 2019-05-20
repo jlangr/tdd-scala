@@ -15,8 +15,10 @@ class CheckoutTest extends FunSpec
     with ScalatestRouteTest
     with MockitoSugar {
   val mockItemDatabase = mock[Inventory]
+  val mockMemberDatabase = mock[MemberDatabase]
   object TestCheckoutRoutes extends CheckoutRoutes {
     val itemDatabase = mockItemDatabase
+    val memberDatabase = mockMemberDatabase
   }
   var testRoutes: Route = Route.seal(TestCheckoutRoutes.routes())
   var id1: String = null
@@ -25,7 +27,6 @@ class CheckoutTest extends FunSpec
     Post("/checkouts/clear") ~> testRoutes ~> check {}
     id1 = postCheckout
   }
-
 
   describe("checkouts") {
     it("returns created checkout by ID") {
@@ -89,6 +90,19 @@ class CheckoutTest extends FunSpec
       Post(s"/checkouts/999/items", "444") ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
         status shouldEqual (StatusCodes.NotFound)
         responseAs[String] shouldEqual "invalid checkout id: 999"
+      }
+    }
+  }
+
+  describe("member scan") {
+    it("attaches member ID to checkout") {
+      when(mockMemberDatabase.memberLookup("719-287-4335")).thenReturn(Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1)))
+
+      Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
+
+      Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
+        val checkout = responseAs[String].parseJson.convertTo[Checkout]
+        checkout.memberId shouldEqual "42"
       }
     }
   }
