@@ -66,32 +66,36 @@ trait CheckoutRoutes {
     checkouts.toList.find(checkout => checkout.id == checkoutId)
   }
 
-  private def completeCheckoutNotFound(checkoutId: String) = {
-    complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
-  }
-
   private def addItem(retrievedCheckout: Checkout) = {
     entity(as[String]) { upc =>
-      itemDatabase.retrieveItem(upc) match {
-        case Some(item) =>
-          retrievedCheckout.items = List.concat(retrievedCheckout.items, List(item))
-          complete(StatusCodes.Accepted, item)
-        case None =>
-          complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
-      }
+      itemDatabase.retrieveItem(upc).map((item) => {
+        retrievedCheckout.items = List.concat(retrievedCheckout.items, List(item))
+        complete(StatusCodes.Accepted, item)
+      })
+      .getOrElse(completeUpcNotFound(upc))
     }
   }
 
   private def attachMember(retrievedCheckout: Checkout) = {
     entity(as[String]) { phoneNumber =>
-      memberDatabase.memberLookup(phoneNumber) match {
-        case Some(member) =>
-          retrievedCheckout.member = Some(member)
-          complete(StatusCodes.Accepted)
-        case None =>
-          complete(StatusCodes.NotFound, s"phone number not found: ${phoneNumber}")
-      }
+      memberDatabase.memberLookup(phoneNumber).map((member) => {
+        retrievedCheckout.member = Some(member)
+        complete(StatusCodes.Accepted)
+      })
+      .getOrElse(completeMemberNotFound(phoneNumber))
     }
+  }
+
+  private def completeCheckoutNotFound(checkoutId: String) = {
+    complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
+  }
+
+  private def completeMemberNotFound(phoneNumber: String) = {
+    complete(StatusCodes.NotFound, s"phone number not found: ${phoneNumber}")
+  }
+
+  private def completeUpcNotFound(upc: String) = {
+    complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
   }
 }
 
