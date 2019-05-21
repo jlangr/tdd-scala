@@ -157,6 +157,15 @@ class CheckoutTest extends FunSpec
         responseAs[String] shouldEqual "29.00"
       }
     }
+
+    it("provides 0 total for discounted items when no member scanned") {
+      postItemResolvingToPrice("11", BigDecimal(10.00))
+      postExemptItemResolvingToPrice("22", BigDecimal(20.00))
+
+      Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
+        responseAs[String] shouldEqual "30.00"
+      }
+    }
   }
 
   private def postMemberWithDiscount(discount: BigDecimal) = {
