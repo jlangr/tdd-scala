@@ -36,31 +36,38 @@ trait CheckoutRoutes {
   }
 
   private def postMember(checkoutId: String) = {
-    val retrievedCheckout: Option[Checkout] = checkouts.toList.find(checkout => { checkout.id == checkoutId })
-    entity(as[String]) { phoneNumber =>
-      val member = memberDatabase.memberLookup(phoneNumber)
-      val checkout: Checkout = retrievedCheckout.get
-      checkout.memberId = member.id
-      checkout.member = member
-      complete(StatusCodes.Accepted)
-    }
+    val retrievedCheckout = findCheckout(checkoutId)
+    if (retrievedCheckout.isEmpty)
+      complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
+    else
+      entity(as[String]) { phoneNumber =>
+        val member = memberDatabase.memberLookup(phoneNumber)
+        val checkout: Checkout = retrievedCheckout.get
+        checkout.memberId = member.id
+        checkout.member = member
+        complete(StatusCodes.Accepted)
+      }
+  }
+
+  private def findCheckout(checkoutId: String) = {
+    checkouts.toList.find(checkout => { checkout.id == checkoutId })
   }
 
   private def postItem(checkoutId: String) = {
-    val retrievedCheckout: Option[Checkout] = checkouts.toList.find(checkout => { checkout.id == checkoutId })
-    if (retrievedCheckout.isEmpty)
-      complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
-    else {
-      entity(as[String]) { upc =>
-        val item: Item = itemDatabase.retrieveItem(upc)
-        if (item == null)
-          complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
-        else {
-          val checkout: Checkout = retrievedCheckout.get
-          checkout.items = List.concat(checkout.items, List(item))
-          complete(StatusCodes.Accepted, item)
+    findCheckout(checkoutId) match {
+      case checkout if checkout.isEmpty =>
+        complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
+      case retrievedCheckout =>
+        entity(as[String]) { upc =>
+          val item: Item = itemDatabase.retrieveItem(upc)
+          if (item == null)
+            complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
+          else {
+            val checkout: Checkout = retrievedCheckout.get
+            checkout.items = List.concat(checkout.items, List(item))
+            complete(StatusCodes.Accepted, item)
+          }
         }
-      }
     }
   }
 

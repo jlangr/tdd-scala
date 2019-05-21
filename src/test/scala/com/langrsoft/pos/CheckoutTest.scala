@@ -87,7 +87,7 @@ class CheckoutTest extends FunSpec
 
     it("returns error when checkout not found") {
       Post(s"/checkouts/999/items", "444") ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
-        status shouldEqual (StatusCodes.NotFound)
+        status shouldEqual StatusCodes.NotFound
         responseAs[String] shouldEqual "invalid checkout id: 999"
       }
     }
@@ -104,6 +104,17 @@ class CheckoutTest extends FunSpec
         checkout.memberId shouldEqual "42"
         checkout.member.phoneNumber shouldEqual("719-287-4335")
       }
+    }
+
+    it("returns error when checkout not found") {
+      Post(s"/checkouts/999/member", "whatever") ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[String] shouldEqual "invalid checkout id: 999"
+      }
+    }
+
+    it("returns error when member not found") {
+
     }
   }
 
