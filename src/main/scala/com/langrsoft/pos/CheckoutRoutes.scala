@@ -75,8 +75,12 @@ trait CheckoutRoutes {
 
   private def completeTotal(retrievedCheckout: Checkout) : Route = {
     val discount = retrievedCheckout.member map (member => member.discount) getOrElse BigDecimal(0)
-    val total = retrievedCheckout.items.foldLeft(BigDecimal(0)) {
-      (total, item) => total + item.price * (BigDecimal(1.0) - discount)}
+    val total = retrievedCheckout.items
+      .foldLeft(BigDecimal(0)) {
+        (total, item) => {
+          val discountTo = if (item.isExemptFromDiscount) BigDecimal(1) else BigDecimal(1.0) - discount
+          total + item.price * discountTo
+        }}
     complete(StatusCodes.Accepted, total.setScale(2).toString())
   }
 

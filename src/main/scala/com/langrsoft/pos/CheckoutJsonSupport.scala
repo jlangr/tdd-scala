@@ -5,14 +5,14 @@ import spray.json._
 
 case class Member(id: String, phoneNumber: String, name: String, discount: BigDecimal)
 
-case class Item(id: String, upc: String, description: String, price: BigDecimal)
+case class Item(id: String, upc: String, description: String, price: BigDecimal, isExemptFromDiscount: Boolean)
 
 case class Checkout(id: String, var items: List[Item], var member: Option[Member])
 
 object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val aMember = jsonFormat4(Member)
 
-  implicit val anItem = jsonFormat4(Item)
+  implicit val anItem = jsonFormat5(Item)
 
   implicit object CheckoutJsonFormat extends RootJsonFormat[Checkout] {
     def write(checkout: Checkout) = {

@@ -7,8 +7,8 @@ import CheckoutJsonSupport._
 
 class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAndAfter with ScalatestRouteTest {
   describe("checkout JSON support") {
-    val itemJson = """{"id":"1","upc":"444","description":"Eggs","price":4.44}"""
-    val checkoutJson = """{"id":"42","items":[{"id":"1","upc":"111222333","description":"milk","price":4.98}],"member":{"id":"42","phoneNumber":"719-287-4335","name":"Jeff Languid","discount":0.1}}"""
+    val itemJson = """{"description":"Eggs","price":4.44,"isExemptFromDiscount":false,"upc":"444","id":"1"}"""
+    val checkoutJson = """{"id":"42","items":[{"description":"milk","price":4.98,"isExemptFromDiscount":false,"upc":"111222333","id":"1"}],"member":{"id":"42","phoneNumber":"719-287-4335","name":"Jeff Languid","discount":0.1}}"""
     val noMemberCheckoutJson = """{"id":"42","items":[]}"""
 
     it("decodes a checkout") {
@@ -31,7 +31,7 @@ class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAnd
 
     it("encodes a checkout") {
       val checkout = Checkout("42",
-        List(Item("1", "111222333", "milk", BigDecimal(4.98))),
+        List(Item("1", "111222333", "milk", BigDecimal(4.98), false)),
         Some(Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1)))
       )
 
@@ -39,7 +39,7 @@ class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAnd
     }
 
     it("encodes an item") {
-      val item = Item("1", "444", "Eggs", BigDecimal(4.44))
+      val item = Item("1", "444", "Eggs", BigDecimal(4.44), false)
 
       item.toJson.toString shouldEqual(itemJson)
     }
@@ -51,6 +51,7 @@ class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAnd
       item.upc shouldEqual("444")
       item.description shouldEqual("Eggs")
       item.price shouldEqual(BigDecimal(4.44))
+      item.isExemptFromDiscount shouldBe(false)
     }
   }
 }

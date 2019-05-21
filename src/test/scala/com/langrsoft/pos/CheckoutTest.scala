@@ -56,16 +56,16 @@ class CheckoutTest extends FunSpec
 
   describe("items") {
     it("returns created line item on post") {
-      when(mockItemDatabase.retrieveItem("444")).thenReturn(Some(Item("1", "444", "Eggs", BigDecimal(4.44))))
+      when(mockItemDatabase.retrieveItem("444")).thenReturn(Some(Item("1", "444", "Eggs", BigDecimal(4.44), false)))
 
       Post(s"/checkouts/${id1}/items", "444") ~> testRoutes ~> check {
-        responseAs[String].parseJson.convertTo[Item] shouldEqual(Item("1", "444", "Eggs", BigDecimal(4.44)))
+        responseAs[String].parseJson.convertTo[Item] shouldEqual(Item("1", "444", "Eggs", BigDecimal(4.44), false))
       }
     }
 
     it("attaches items to checkout on post") {
-      when(mockItemDatabase.retrieveItem("333")).thenReturn(Some(Item("1", "333", "Milk", BigDecimal(2.79))))
-      when(mockItemDatabase.retrieveItem("444")).thenReturn(Some(Item("2", "444", "Eggs", BigDecimal(4.44))))
+      when(mockItemDatabase.retrieveItem("333")).thenReturn(Some(Item("1", "333", "Milk", BigDecimal(2.79), false)))
+      when(mockItemDatabase.retrieveItem("444")).thenReturn(Some(Item("2", "444", "Eggs", BigDecimal(4.44), false)))
 
       Post(s"/checkouts/${id1}/items", "333") ~> testRoutes ~> check {}
       Post(s"/checkouts/${id1}/items", "444") ~> testRoutes ~> check {}
@@ -73,8 +73,8 @@ class CheckoutTest extends FunSpec
       Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
         val checkout = responseAs[String].parseJson.convertTo[Checkout]
         checkout.items shouldEqual List(
-          Item("1", "333", "Milk", BigDecimal(2.79)),
-          Item("2", "444", "Eggs", BigDecimal(4.44)))
+          Item("1", "333", "Milk", BigDecimal(2.79), false),
+          Item("2", "444", "Eggs", BigDecimal(4.44), false))
       }
     }
 
@@ -128,8 +128,8 @@ class CheckoutTest extends FunSpec
 
   describe("checkout total") {
     it("returns total of items scanned") {
-      when(mockItemDatabase.retrieveItem("11")).thenReturn(Some(Item("1", "11", "A", BigDecimal(3.00))))
-      when(mockItemDatabase.retrieveItem("22")).thenReturn(Some(Item("2", "22", "B", BigDecimal(4.00))))
+      when(mockItemDatabase.retrieveItem("11")).thenReturn(Some(Item("1", "11", "A", BigDecimal(3.00), false)))
+      when(mockItemDatabase.retrieveItem("22")).thenReturn(Some(Item("2", "22", "B", BigDecimal(4.00), false)))
       Post(s"/checkouts/${id1}/items", "11") ~> testRoutes ~> check {}
       Post(s"/checkouts/${id1}/items", "22") ~> testRoutes ~> check {}
 
@@ -146,18 +146,34 @@ class CheckoutTest extends FunSpec
     }
 
     it("applies member discount") {
-      when(mockItemDatabase.retrieveItem("11"))
-        .thenReturn(Some(Item("1", "11", "A", BigDecimal(10.00))))
-      when(mockItemDatabase.retrieveItem("22"))
-        .thenReturn(Some(Item("2", "22", "B", BigDecimal(20.00))))
       when(mockMemberDatabase.memberLookup("719-287-4335"))
         .thenReturn(Some(Member("42", "719-287-4335", "X", BigDecimal(0.1))))
       Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
+      when(mockItemDatabase.retrieveItem("11"))
+        .thenReturn(Some(Item("1", "11", "A", BigDecimal(10.00), false)))
+      when(mockItemDatabase.retrieveItem("22"))
+        .thenReturn(Some(Item("2", "22", "B", BigDecimal(20.00), false)))
       Post(s"/checkouts/${id1}/items", "11") ~> testRoutes ~> check {}
       Post(s"/checkouts/${id1}/items", "22") ~> testRoutes ~> check {}
 
       Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
         responseAs[String] shouldEqual "27.00"
+      }
+    }
+
+    it("applies member discount but not to exempt items") {
+      when(mockMemberDatabase.memberLookup("719-287-4335"))
+        .thenReturn(Some(Member("42", "719-287-4335", "X", BigDecimal(0.1))))
+      Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
+      when(mockItemDatabase.retrieveItem("11"))
+        .thenReturn(Some(Item("1", "11", "A", BigDecimal(10.00), false)))
+      when(mockItemDatabase.retrieveItem("22"))
+        .thenReturn(Some(Item("2", "22", "B", BigDecimal(20.00), true)))
+      Post(s"/checkouts/${id1}/items", "11") ~> testRoutes ~> check {}
+      Post(s"/checkouts/${id1}/items", "22") ~> testRoutes ~> check {}
+
+      Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
+        responseAs[String] shouldEqual "29.00"
       }
     }
   }
