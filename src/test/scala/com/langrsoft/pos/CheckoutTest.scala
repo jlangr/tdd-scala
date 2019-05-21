@@ -175,11 +175,8 @@ class CheckoutTest extends FunSpec
       postItemResolvingToPrice("555", "Fancy eggs", 12.00)
 
       Get(s"/checkouts/${id1}/receipt") ~> testRoutes ~> check {
-        println(s"response: ${responseAs[String]}")
-        val result = responseAs[String].parseJson.asInstanceOf[JsArray].elements.map(_.convertTo[String])
-        println(s"RESULT: ${result} ${result.getClass()}")
-        result
-          .shouldEqual(Vector(
+        responseAs[String].parseJson.asInstanceOf[JsArray].elements.map(_.convertTo[String])
+          .shouldEqual(Seq(
             "Milk                                     5.00",
             "Fancy eggs                              12.00",
             "TOTAL                                   17.00"

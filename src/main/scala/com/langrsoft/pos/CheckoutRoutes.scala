@@ -118,8 +118,14 @@ trait CheckoutRoutes {
         val textWidth = LineWidth - amountWidth;
         pad(text, textWidth) + amount;
       })
-    val totalLineItem: String = s"TOTAL                                   ${total}"
+
+    //val totalLineItem: String = s"TOTAL                                   ${total}"
+    val amount = total.setScale(2).toString;
+    val amountWidth = amount.length;
+    val textWidth = LineWidth - amountWidth;
+    val totalLineItem = pad("TOTAL", textWidth) + amount;
     val allLineItems: List[String] = lineItems :+ totalLineItem
+
     complete(StatusCodes.Accepted, allLineItems)
   }
 
