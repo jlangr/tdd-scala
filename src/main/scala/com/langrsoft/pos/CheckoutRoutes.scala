@@ -37,19 +37,19 @@ trait CheckoutRoutes {
 
   private def postMember(checkoutId: String) = {
     findCheckout(checkoutId) match {
-      case None =>
-        complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
       case Some(retrievedCheckout) =>
         entity(as[String]) { phoneNumber =>
           memberDatabase.memberLookup(phoneNumber) match {
+            case Some(member) =>
+              val checkout: Checkout = retrievedCheckout
+              checkout.member = Some(member)
+              complete(StatusCodes.Accepted)
             case None =>
               complete(StatusCodes.NotFound, s"phone number not found: 719-287-4335")
-            case member =>
-              val checkout: Checkout = retrievedCheckout
-              checkout.member = member
-              complete(StatusCodes.Accepted)
           }
         }
+      case None =>
+        complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
     }
   }
 
@@ -59,18 +59,18 @@ trait CheckoutRoutes {
 
   private def postItem(checkoutId: String) = {
     findCheckout(checkoutId) match {
-      case None =>
-        complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
       case Some(retrievedCheckout) =>
         entity(as[String]) { upc =>
           itemDatabase.retrieveItem(upc) match {
-            case None =>
-              complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
             case Some(item) =>
               retrievedCheckout.items = List.concat(retrievedCheckout.items, List(item))
               complete(StatusCodes.Accepted, item)
+            case None =>
+              complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
           }
         }
+      case None =>
+        complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
     }
   }
 
