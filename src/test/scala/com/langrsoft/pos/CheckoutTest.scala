@@ -179,7 +179,24 @@ class CheckoutTest extends FunSpec
           .shouldEqual(Seq(
             "Milk                                     5.00",
             "Fancy eggs                              12.00",
-            "TOTAL                                   17.00"
+            "TOTAL                                   17.00"))
+      }
+    }
+
+    it("includes discounts and total saved") {
+      postMemberWithDiscount(BigDecimal(0.1))
+      postItemResolvingToPrice("123", "Milk", 5.00)
+      postItemResolvingToPrice("555", "Eggs", 2.79)
+
+      Get(s"/checkouts/${id1}/receipt") ~> testRoutes ~> check {
+        responseAs[String].parseJson.asInstanceOf[JsArray].elements.map(_.convertTo[String])
+          .shouldEqual(Seq(
+            "Milk                                     5.00",
+            "   10% mbr disc                         -0.50",
+            "Eggs                                     2.79",
+            "   10% mbr disc                         -0.28",
+            "TOTAL                                    7.01"
+//            "*** You saved:                           0.78"
           ))
       }
     }

@@ -1,11 +1,14 @@
 package com.langrsoft.pos
 
+import java.math.MathContext
+
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import CheckoutJsonSupport._
 
 import scala.collection.mutable.ListBuffer
+import scala.math.BigDecimal.RoundingMode
 
 trait CheckoutRoutes {
   val checkouts: ListBuffer[Checkout] = ListBuffer[Checkout]()
@@ -103,30 +106,52 @@ trait CheckoutRoutes {
   }
 
   private def completeReceipt(retrievedCheckout: Checkout) : Route = {
-    val total = discountedTotal(retrievedCheckout)
+    var total = BigDecimal(0)
 
     val LineWidth = 45
 
-    val lineItems: List[String] = retrievedCheckout.items
-      .map(item => {
-        val text = item.description
+    val lineItems = ListBuffer[String]()
+
+    val discount = if (retrievedCheckout.member.isEmpty) BigDecimal(0) else retrievedCheckout.member.get.discount
+
+    retrievedCheckout.items
+      .foreach(item => {
         val price = item.price
+        val isExempt = item.isExemptFromDiscount
+        if (!isExempt && discount > 0) {
+          val discountAmount = discount * price
+          val discountedPrice = price * (1.0 - discount)
 
-        val amount = price.setScale(2).toString;
-        val amountWidth = amount.length;
+          var text = item.description
+          val amount = (price * 100 / 100).setScale(2).toString
+          val amountWidth = amount.length
+          var textWidth = LineWidth - amountWidth
+          lineItems += pad(text, textWidth) + amount
 
-        val textWidth = LineWidth - amountWidth;
-        pad(text, textWidth) + amount;
+          val discountPctFormatted = (discount * 100).round(new MathContext(0)).toInt
+          val discountFormatted = "-" + discountAmount.setScale(2, RoundingMode.HALF_EVEN)
+          textWidth = LineWidth - discountFormatted.length;
+          text = s"   ${discountPctFormatted}% mbr disc"
+          lineItems += s"${pad(text, textWidth)}${discountFormatted}"
+
+          total += discountedPrice
+        } else {
+          val text = item.description
+          val amount = price.setScale(2, RoundingMode.HALF_EVEN).toString
+          val amountWidth = amount.length
+          val textWidth = LineWidth - amountWidth
+          lineItems += pad(text, textWidth) + amount
+
+          total += item.price
+        }
       })
+    val amount = total.setScale(2, RoundingMode.HALF_EVEN).toString
+    val amountWidth = amount.length
+    val textWidth = LineWidth - amountWidth
+    val totalLineItem = pad("TOTAL", textWidth) + amount
+    val allLineItems = lineItems :+ totalLineItem
 
-    //val totalLineItem: String = s"TOTAL                                   ${total}"
-    val amount = total.setScale(2).toString;
-    val amountWidth = amount.length;
-    val textWidth = LineWidth - amountWidth;
-    val totalLineItem = pad("TOTAL", textWidth) + amount;
-    val allLineItems: List[String] = lineItems :+ totalLineItem
-
-    complete(StatusCodes.Accepted, allLineItems)
+    complete(StatusCodes.Accepted, allLineItems.toList)
   }
 
   private def completeAddItem(retrievedCheckout: Checkout) = {
