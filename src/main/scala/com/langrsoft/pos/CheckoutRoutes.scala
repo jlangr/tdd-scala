@@ -26,6 +26,9 @@ trait CheckoutRoutes {
         path(Segment / "total") {
           checkoutId => { get { getTotal(checkoutId) } }
         },
+        path(Segment / "receipt") {
+          checkoutId => { get { getReceipt(checkoutId) } }
+        },
         path("clear") {
           clearAllCheckouts()
         },
@@ -38,6 +41,7 @@ trait CheckoutRoutes {
     })
   }
 
+  // TODO: factor these
   private def postMember(checkoutId: String) = {
     findCheckout(checkoutId) map completeAttachMember getOrElse completeCheckoutNotFound(checkoutId)
   }
@@ -48,6 +52,10 @@ trait CheckoutRoutes {
 
   private def getTotal(checkoutId: String) = {
     findCheckout(checkoutId) map completeTotal getOrElse completeCheckoutNotFound(checkoutId)
+  }
+
+  private def getReceipt(checkoutId: String) = {
+    findCheckout(checkoutId) map completeReceipt getOrElse completeCheckoutNotFound(checkoutId)
   }
 
   private def clearAllCheckouts() = {
@@ -74,14 +82,45 @@ trait CheckoutRoutes {
   }
 
   private def completeTotal(retrievedCheckout: Checkout) : Route = {
+    val total: BigDecimal = discountedTotal(retrievedCheckout)
+    complete(StatusCodes.Accepted, total.setScale(2).toString())
+  }
+
+  private def discountedTotal(retrievedCheckout: Checkout) = {
     val discount = retrievedCheckout.member map (member => member.discount) getOrElse BigDecimal(0)
     val total = retrievedCheckout.items
       .foldLeft(BigDecimal(0)) {
         (total, item) => {
           val discountTo = if (item.isExemptFromDiscount) BigDecimal(1) else BigDecimal(1.0) - discount
           total + item.price * discountTo
-        }}
-    complete(StatusCodes.Accepted, total.setScale(2).toString())
+        }
+      }
+    total
+  }
+
+  private def pad(s: String, length: Int) = {
+    s + (" " * (length - s.length))
+  }
+
+  private def completeReceipt(retrievedCheckout: Checkout) : Route = {
+    val total = discountedTotal(retrievedCheckout)
+
+    val LineWidth = 45
+
+    val lineItems: List[String] = retrievedCheckout.items
+      .map(item => {
+        val text = item.description
+        val price = item.price
+
+        val amount = price.setScale(2).toString;
+        val amountWidth = amount.length;
+
+        val textWidth = LineWidth - amountWidth;
+        pad(text, textWidth) + amount;
+      })
+    val totalLineItem: String = s"TOTAL                                   ${total}"
+    val allLineItems: List[String] = lineItems :+ totalLineItem
+    complete(StatusCodes.Accepted, allLineItems)
   }
 
   private def completeAddItem(retrievedCheckout: Checkout) = {

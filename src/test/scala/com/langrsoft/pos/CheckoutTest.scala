@@ -30,7 +30,7 @@ class CheckoutTest extends FunSpec
     id1 = postCheckout
   }
 
-  describe("checkouts") {
+  describe("a new (posted) checkout") {
     it("returns created checkout by ID") {
       Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
         status.isSuccess() shouldBe(true)
@@ -123,8 +123,8 @@ class CheckoutTest extends FunSpec
 
   describe("checkout total") {
     it("returns total of items scanned") {
-      postItemResolvingToPrice("11", BigDecimal("3.00"))
-      postItemResolvingToPrice("12", BigDecimal("4.00"))
+      postItemResolvingToPrice("11", "", BigDecimal("3.00"))
+      postItemResolvingToPrice("12", "", BigDecimal("4.00"))
 
       Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
         responseAs[String] shouldEqual "7.00"
@@ -140,8 +140,8 @@ class CheckoutTest extends FunSpec
 
     it("applies member discount") {
       postMemberWithDiscount(BigDecimal(0.1))
-      postItemResolvingToPrice("11", BigDecimal(10.00))
-      postItemResolvingToPrice("22", BigDecimal(20.00))
+      postItemResolvingToPrice("11", "", BigDecimal(10.00))
+      postItemResolvingToPrice("22", "", BigDecimal(20.00))
 
       Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
         responseAs[String] shouldEqual "27.00"
@@ -150,8 +150,8 @@ class CheckoutTest extends FunSpec
 
     it("applies member discount but not to exempt items") {
       postMemberWithDiscount(BigDecimal(0.1))
-      postItemResolvingToPrice("11", BigDecimal(10.00))
-      postExemptItemResolvingToPrice("22", BigDecimal(20.00))
+      postItemResolvingToPrice("11", "", BigDecimal(10.00))
+      postExemptItemResolvingToPrice("22", "", BigDecimal(20.00))
 
       Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
         responseAs[String] shouldEqual "29.00"
@@ -159,11 +159,31 @@ class CheckoutTest extends FunSpec
     }
 
     it("provides 0 total for discounted items when no member scanned") {
-      postItemResolvingToPrice("11", BigDecimal(10.00))
-      postExemptItemResolvingToPrice("22", BigDecimal(20.00))
+      postItemResolvingToPrice("11", "", BigDecimal(10.00))
+      postExemptItemResolvingToPrice("22", "", BigDecimal(20.00))
 
       Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
         responseAs[String] shouldEqual "30.00"
+      }
+    }
+  }
+
+
+  describe("receipt text lines") {
+    it("includes items and total") {
+      postItemResolvingToPrice("123", "Milk", 5.00)
+      postItemResolvingToPrice("555", "Fancy eggs", 12.00)
+
+      Get(s"/checkouts/${id1}/receipt") ~> testRoutes ~> check {
+        println(s"response: ${responseAs[String]}")
+        val result = responseAs[String].parseJson.asInstanceOf[JsArray].elements.map(_.convertTo[String])
+        println(s"RESULT: ${result} ${result.getClass()}")
+        result
+          .shouldEqual(Vector(
+            "Milk                                     5.00",
+            "Fancy eggs                              12.00",
+            "TOTAL                                   17.00"
+          ))
       }
     }
   }
@@ -174,14 +194,14 @@ class CheckoutTest extends FunSpec
     Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
   }
 
-  private def postItemResolvingToPrice(upc: String, price: BigDecimal, isExemptFromDiscount: Boolean = false) = {
+  private def postItemResolvingToPrice(upc: String, description: String, price: BigDecimal, isExemptFromDiscount: Boolean = false) = {
     when(mockItemDatabase.retrieveItem(upc))
-      .thenReturn(Some(Item(upc, upc, "", price, isExemptFromDiscount)))
+      .thenReturn(Some(Item(upc, upc, description, price, isExemptFromDiscount)))
     Post(s"/checkouts/${id1}/items", upc) ~> testRoutes ~> check {}
   }
 
-  private def postExemptItemResolvingToPrice(upc: String, price: BigDecimal) = {
-    postItemResolvingToPrice(upc, price, true)
+  private def postExemptItemResolvingToPrice(upc: String, description: String, price: BigDecimal) = {
+    postItemResolvingToPrice(upc, description, price, true)
   }
 
   private def jsArrayToArrayOf[T :JsonReader] = {
