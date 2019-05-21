@@ -23,6 +23,9 @@ trait CheckoutRoutes {
         path(Segment / "member") {
           checkoutId => { post { postMember(checkoutId) } }
         },
+        path(Segment / "total") {
+          checkoutId => { get { getTotal(checkoutId) } }
+        },
         path("clear") {
           clearAllCheckouts()
         },
@@ -36,11 +39,15 @@ trait CheckoutRoutes {
   }
 
   private def postMember(checkoutId: String) = {
-    findCheckout(checkoutId) map attachMember getOrElse completeCheckoutNotFound(checkoutId)
+    findCheckout(checkoutId) map completeAttachMember getOrElse completeCheckoutNotFound(checkoutId)
   }
 
   private def postItem(checkoutId: String) = {
-    findCheckout(checkoutId) map addItem getOrElse completeCheckoutNotFound(checkoutId)
+    findCheckout(checkoutId) map completeAddItem getOrElse completeCheckoutNotFound(checkoutId)
+  }
+
+  private def getTotal(checkoutId: String) = {
+    findCheckout(checkoutId) map completeTotal getOrElse completeCheckoutNotFound(checkoutId)
   }
 
   private def clearAllCheckouts() = {
@@ -66,7 +73,12 @@ trait CheckoutRoutes {
     checkouts.toList.find(checkout => checkout.id == checkoutId)
   }
 
-  private def addItem(retrievedCheckout: Checkout) = {
+  private def completeTotal(retrievedCheckout: Checkout) : Route = {
+    val total = retrievedCheckout.items.foldLeft(BigDecimal(0)) { (total, item) => total + item.price }
+    complete(StatusCodes.Accepted, total.setScale(2).toString())
+  }
+
+  private def completeAddItem(retrievedCheckout: Checkout) = {
     entity(as[String]) { upc =>
       itemDatabase.retrieveItem(upc).map((item) => {
         retrievedCheckout.items = List.concat(retrievedCheckout.items, List(item))
@@ -76,7 +88,7 @@ trait CheckoutRoutes {
     }
   }
 
-  private def attachMember(retrievedCheckout: Checkout) = {
+  private def completeAttachMember(retrievedCheckout: Checkout) = {
     entity(as[String]) { phoneNumber =>
       memberDatabase.memberLookup(phoneNumber).map((member) => {
         retrievedCheckout.member = Some(member)

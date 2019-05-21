@@ -126,6 +126,19 @@ class CheckoutTest extends FunSpec
     }
   }
 
+  describe("checkout total") {
+    it("returns total of items scanned") {
+      when(mockItemDatabase.retrieveItem("11")).thenReturn(Some(Item("1", "11", "A", BigDecimal(3.00))))
+      when(mockItemDatabase.retrieveItem("22")).thenReturn(Some(Item("2", "22", "B", BigDecimal(4.00))))
+      Post(s"/checkouts/${id1}/items", "11") ~> testRoutes ~> check {}
+      Post(s"/checkouts/${id1}/items", "22") ~> testRoutes ~> check {}
+
+      Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
+        responseAs[String] shouldEqual "7.00"
+      }
+    }
+  }
+
   private def jsArrayToArrayOf[T :JsonReader] = {
     responseAs[String].parseJson.asInstanceOf[JsArray].elements.map(_.convertTo[T])
   }
