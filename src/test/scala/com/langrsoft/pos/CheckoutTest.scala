@@ -128,10 +128,8 @@ class CheckoutTest extends FunSpec
 
   describe("checkout total") {
     it("returns total of items scanned") {
-      when(mockItemDatabase.retrieveItem("11")).thenReturn(Some(Item("1", "11", "A", BigDecimal(3.00), false)))
-      when(mockItemDatabase.retrieveItem("22")).thenReturn(Some(Item("2", "22", "B", BigDecimal(4.00), false)))
-      Post(s"/checkouts/${id1}/items", "11") ~> testRoutes ~> check {}
-      Post(s"/checkouts/${id1}/items", "22") ~> testRoutes ~> check {}
+      postItemResolvingToPrice("11", BigDecimal("3.00"))
+      postItemResolvingToPrice("12", BigDecimal("4.00"))
 
       Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
         responseAs[String] shouldEqual "7.00"
@@ -146,15 +144,9 @@ class CheckoutTest extends FunSpec
     }
 
     it("applies member discount") {
-      when(mockMemberDatabase.memberLookup("719-287-4335"))
-        .thenReturn(Some(Member("42", "719-287-4335", "X", BigDecimal(0.1))))
-      Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
-      when(mockItemDatabase.retrieveItem("11"))
-        .thenReturn(Some(Item("1", "11", "A", BigDecimal(10.00), false)))
-      when(mockItemDatabase.retrieveItem("22"))
-        .thenReturn(Some(Item("2", "22", "B", BigDecimal(20.00), false)))
-      Post(s"/checkouts/${id1}/items", "11") ~> testRoutes ~> check {}
-      Post(s"/checkouts/${id1}/items", "22") ~> testRoutes ~> check {}
+      postMemberWithDiscount(BigDecimal(0.1))
+      postItemResolvingToPrice("11", BigDecimal(10.00))
+      postItemResolvingToPrice("22", BigDecimal(20.00))
 
       Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
         responseAs[String] shouldEqual "27.00"
@@ -162,20 +154,30 @@ class CheckoutTest extends FunSpec
     }
 
     it("applies member discount but not to exempt items") {
-      when(mockMemberDatabase.memberLookup("719-287-4335"))
-        .thenReturn(Some(Member("42", "719-287-4335", "X", BigDecimal(0.1))))
-      Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
-      when(mockItemDatabase.retrieveItem("11"))
-        .thenReturn(Some(Item("1", "11", "A", BigDecimal(10.00), false)))
-      when(mockItemDatabase.retrieveItem("22"))
-        .thenReturn(Some(Item("2", "22", "B", BigDecimal(20.00), true)))
-      Post(s"/checkouts/${id1}/items", "11") ~> testRoutes ~> check {}
-      Post(s"/checkouts/${id1}/items", "22") ~> testRoutes ~> check {}
+      postMemberWithDiscount(BigDecimal(0.1))
+      postItemResolvingToPrice("11", BigDecimal(10.00))
+      postExemptItemResolvingToPrice("22", BigDecimal(20.00))
 
       Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
         responseAs[String] shouldEqual "29.00"
       }
     }
+  }
+
+  private def postMemberWithDiscount(discount: BigDecimal) = {
+    when(mockMemberDatabase.memberLookup("719-287-4335"))
+      .thenReturn(Some(Member("42", "719-287-4335", "X", discount)))
+    Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
+  }
+
+  private def postItemResolvingToPrice(upc: String, price: BigDecimal, isExemptFromDiscount: Boolean = false) = {
+    when(mockItemDatabase.retrieveItem(upc))
+      .thenReturn(Some(Item(upc, upc, "", price, isExemptFromDiscount)))
+    Post(s"/checkouts/${id1}/items", upc) ~> testRoutes ~> check {}
+  }
+
+  private def postExemptItemResolvingToPrice(upc: String, price: BigDecimal) = {
+    postItemResolvingToPrice(upc, price, true)
   }
 
   private def jsArrayToArrayOf[T :JsonReader] = {
