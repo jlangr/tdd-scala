@@ -195,8 +195,8 @@ class CheckoutTest extends FunSpec
             "   10% mbr disc                         -0.50",
             "Eggs                                     2.79",
             "   10% mbr disc                         -0.28",
-            "TOTAL                                    7.01"
-//            "*** You saved:                           0.78"
+            "TOTAL                                    7.01",
+            "*** You saved:                           0.78"
           ))
       }
     }
