@@ -21,18 +21,18 @@ class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAnd
 
     it("decodes null member") {
       val checkout = noMemberCheckoutJson.parseJson.convertTo[Checkout]
-      checkout.member shouldBe null
+      checkout.member.isEmpty shouldBe true
     }
 
     it("encodes null member") {
-      val checkout = Checkout("42", List(), null)
-      checkout.toJson.toString shouldEqual(noMemberCheckoutJson)
+      val checkout = Checkout("42", List(), None)
+      checkout.toJson.toString shouldEqual noMemberCheckoutJson
     }
 
     it("encodes a checkout") {
       val checkout = Checkout("42",
         List(Item("1", "111222333", "milk", BigDecimal(4.98))),
-        Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1))
+        Some(Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1)))
       )
 
       checkout.toJson.toString shouldEqual checkoutJson

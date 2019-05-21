@@ -7,7 +7,7 @@ case class Member(id: String, phoneNumber: String, name: String, discount: BigDe
 
 case class Item(id: String, upc: String, description: String, price: BigDecimal)
 
-case class Checkout(id: String, var items: List[Item], var member: Member)
+case class Checkout(id: String, var items: List[Item], var member: Option[Member])
 
 object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val aMember = jsonFormat4(Member)
@@ -16,20 +16,19 @@ object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
 
   implicit object CheckoutJsonFormat extends RootJsonFormat[Checkout] {
     def write(checkout: Checkout) = {
-      var fields: Map[String,JsValue] = null
-      fields = Map(
+      var fields: Map[String,JsValue] = Map(
         "id" -> JsString(checkout.id),
         "items" -> JsArray(checkout.items.map(_.toJson).toVector))
-      if (checkout.member != null) fields += ("member" -> checkout.member.toJson)
+      if (!checkout.member.isEmpty) fields += ("member" -> checkout.member.toJson)
       JsObject(fields)
     }
 
     def read(value: JsValue): Checkout = {
       value.asJsObject.getFields("id", "items", "member") match {
         case Seq(JsString(id), JsArray(items), member) =>
-          new Checkout(id, items.map(_.convertTo[Item]).to[List], member.convertTo[Member])
+          new Checkout(id, items.map(_.convertTo[Item]).to[List], member.convertTo[Option[Member]])
         case Seq(JsString(id), JsArray(items)) =>
-          new Checkout(id, items.map(_.convertTo[Item]).to[List], null)
+          new Checkout(id, items.map(_.convertTo[Item]).to[List], None)
       }
     }
   }

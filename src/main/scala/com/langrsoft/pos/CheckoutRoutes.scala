@@ -41,10 +41,14 @@ trait CheckoutRoutes {
         complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
       case retrievedCheckout =>
         entity(as[String]) { phoneNumber =>
-          val member = memberDatabase.memberLookup(phoneNumber)
-          val checkout: Checkout = retrievedCheckout.get
-          checkout.member = member
-          complete(StatusCodes.Accepted)
+          memberDatabase.memberLookup(phoneNumber) match {
+            case m if m.isEmpty =>
+              complete(StatusCodes.NotFound, s"phone number not found: 719-287-4335")
+            case member =>
+              val checkout: Checkout = retrievedCheckout.get
+              checkout.member = member
+              complete(StatusCodes.Accepted)
+          }
         }
     }
   }
@@ -85,7 +89,7 @@ trait CheckoutRoutes {
   }
 
   private def postCheckout() = {
-    val checkout = Checkout(nextId().toString(), List(), null)
+    val checkout = Checkout(nextId().toString(), List(), None)
     checkouts += checkout
     complete(StatusCodes.Created, checkout.id)
   }

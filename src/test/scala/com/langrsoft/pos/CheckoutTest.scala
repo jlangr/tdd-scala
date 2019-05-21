@@ -16,10 +16,12 @@ class CheckoutTest extends FunSpec
     with MockitoSugar {
   val mockItemDatabase = mock[Inventory]
   val mockMemberDatabase = mock[MemberDatabase]
+
   object TestCheckoutRoutes extends CheckoutRoutes {
     val itemDatabase = mockItemDatabase
     val memberDatabase = mockMemberDatabase
   }
+
   var testRoutes: Route = Route.seal(TestCheckoutRoutes.routes())
   var id1: String = null
 
@@ -37,7 +39,7 @@ class CheckoutTest extends FunSpec
       }
     }
 
-    ignore("returns all created checkouts") {
+    it("returns all created checkouts") {
       val id2 = postCheckout
 
       Get(s"/allCheckouts") ~> testRoutes ~> check {
@@ -95,13 +97,14 @@ class CheckoutTest extends FunSpec
 
   describe("member scan") {
     it("attaches member ID to checkout") {
-      when(mockMemberDatabase.memberLookup("719-287-4335")).thenReturn(Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1)))
+      when(mockMemberDatabase.memberLookup("719-287-4335"))
+        .thenReturn(Some(Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1))))
 
       Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
 
       Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
         val checkout = responseAs[String].parseJson.convertTo[Checkout]
-        checkout.member.phoneNumber shouldEqual("719-287-4335")
+        checkout.member.get.phoneNumber shouldEqual("719-287-4335")
       }
     }
 
@@ -113,7 +116,13 @@ class CheckoutTest extends FunSpec
     }
 
     it("returns error when member not found") {
+      when(mockMemberDatabase.memberLookup("719-287-4335"))
+        .thenReturn(None)
 
+      Post(s"/checkouts/${id1}/member", "719-287-4335") ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[String] shouldEqual "phone number not found: 719-287-4335"
+      }
     }
   }
 
