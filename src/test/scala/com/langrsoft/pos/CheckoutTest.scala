@@ -137,6 +137,13 @@ class CheckoutTest extends FunSpec
         responseAs[String] shouldEqual "7.00"
       }
     }
+
+    it("returns error when checkout not found") {
+      Get(s"/checkouts/999/total", "whatever") ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[String] shouldEqual "invalid checkout id: 999"
+      }
+    }
   }
 
   private def jsArrayToArrayOf[T :JsonReader] = {
