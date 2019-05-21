@@ -36,17 +36,17 @@ trait CheckoutRoutes {
   }
 
   private def postMember(checkoutId: String) = {
-    val retrievedCheckout = findCheckout(checkoutId)
-    if (retrievedCheckout.isEmpty)
-      complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
-    else
-      entity(as[String]) { phoneNumber =>
-        val member = memberDatabase.memberLookup(phoneNumber)
-        val checkout: Checkout = retrievedCheckout.get
-        checkout.memberId = member.id
-        checkout.member = member
-        complete(StatusCodes.Accepted)
-      }
+    findCheckout(checkoutId) match {
+      case c if c.isEmpty =>
+        complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
+      case retrievedCheckout =>
+        entity(as[String]) { phoneNumber =>
+          val member = memberDatabase.memberLookup(phoneNumber)
+          val checkout: Checkout = retrievedCheckout.get
+          checkout.member = member
+          complete(StatusCodes.Accepted)
+        }
+    }
   }
 
   private def findCheckout(checkoutId: String) = {
@@ -55,17 +55,17 @@ trait CheckoutRoutes {
 
   private def postItem(checkoutId: String) = {
     findCheckout(checkoutId) match {
-      case checkout if checkout.isEmpty =>
+      case c if c.isEmpty =>
         complete(StatusCodes.NotFound, s"invalid checkout id: ${checkoutId}")
       case retrievedCheckout =>
         entity(as[String]) { upc =>
-          val item: Item = itemDatabase.retrieveItem(upc)
-          if (item == null)
-            complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
-          else {
-            val checkout: Checkout = retrievedCheckout.get
-            checkout.items = List.concat(checkout.items, List(item))
-            complete(StatusCodes.Accepted, item)
+          itemDatabase.retrieveItem(upc) match {
+            case i if i.isEmpty =>
+              complete(StatusCodes.NotFound, s"invalid upc: ${upc}")
+            case item =>
+              val checkout: Checkout = retrievedCheckout.get
+              checkout.items = List.concat(checkout.items, List(item.get))
+              complete(StatusCodes.Accepted, item.get)
           }
         }
     }
@@ -81,15 +81,11 @@ trait CheckoutRoutes {
   }
 
   private def getCheckout() = {
-    parameters('id.as[String]) { id => {
-      val checkout: Option[Checkout] = checkouts.toList.find(checkout => checkout.id == id)
-      complete(checkout.get)
-    }}
+    parameters('id.as[String]) { id => complete(findCheckout(id).get)}
   }
 
   private def postCheckout() = {
-    val checkout = Checkout(nextId().toString(), "", List(), null)
-    checkout.memberId = s"member #${checkout.id}"
+    val checkout = Checkout(nextId().toString(), List(), null)
     checkouts += checkout
     complete(StatusCodes.Created, checkout.id)
   }

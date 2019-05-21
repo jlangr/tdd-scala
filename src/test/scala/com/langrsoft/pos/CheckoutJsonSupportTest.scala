@@ -7,50 +7,35 @@ import CheckoutJsonSupport._
 
 class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAndAfter with ScalatestRouteTest {
   describe("checkout JSON support") {
-    val itemJson = "{\"id\":\"1\",\"upc\":\"444\",\"description\":\"Eggs\",\"price\":4.44}"
-    val checkoutJson = "{" +
-      "\"id\":\"42\"," +
-      "\"memberId\":\"719-287-GEEK\"," +
-      "\"items\":[" +
-      "{\"id\":\"1\",\"upc\":\"111222333\",\"description\":\"milk\",\"price\":4.98}" +
-      "]," +
-      "\"member\":{" +
-      "\"id\":\"42\",\"phoneNumber\":\"719-287-4335\",\"name\":\"Jeff Languid\",\"discount\":0.1" +
-      "}" +
-      "}"
+    val itemJson = """{"id":"1","upc":"444","description":"Eggs","price":4.44}"""
+    val checkoutJson = """{"id":"42","items":[{"id":"1","upc":"111222333","description":"milk","price":4.98}],"member":{"id":"42","phoneNumber":"719-287-4335","name":"Jeff Languid","discount":0.1}}"""
+    val noMemberCheckoutJson = """{"id":"42","items":[]}"""
 
     it("decodes a checkout") {
       val checkout = checkoutJson.parseJson.convertTo[Checkout]
 
       checkout.id shouldEqual("42")
-      checkout.memberId shouldEqual("719-287-GEEK")
       val item = checkout.items(0)
       item.description shouldEqual("milk")
     }
 
-    val noMemberCheckout = "{" +
-      "\"id\":\"42\"," +
-      "\"memberId\":\"719-287-GEEK\"," +
-      "\"items\":[]" +
-      "}"
-
     it("decodes null member") {
-      val checkout = noMemberCheckout.parseJson.convertTo[Checkout]
+      val checkout = noMemberCheckoutJson.parseJson.convertTo[Checkout]
       checkout.member shouldBe null
     }
 
     it("encodes null member") {
-      val checkout = Checkout("42", "719-287-GEEK", List(), null)
-      checkout.toJson.toString shouldEqual(noMemberCheckout)
+      val checkout = Checkout("42", List(), null)
+      checkout.toJson.toString shouldEqual(noMemberCheckoutJson)
     }
 
     it("encodes a checkout") {
-      val checkout = Checkout("42", "719-287-GEEK",
+      val checkout = Checkout("42",
         List(Item("1", "111222333", "milk", BigDecimal(4.98))),
         Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1))
       )
 
-      checkout.toJson.toString shouldEqual(checkoutJson)
+      checkout.toJson.toString shouldEqual checkoutJson
     }
 
     it("encodes an item") {

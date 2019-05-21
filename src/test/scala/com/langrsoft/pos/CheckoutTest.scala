@@ -33,7 +33,7 @@ class CheckoutTest extends FunSpec
       Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
         status.isSuccess() shouldBe(true)
         val checkout: Checkout = responseAs[String].parseJson.convertTo[Checkout]
-        checkout.memberId shouldEqual("member #1")
+        checkout.id shouldEqual(id1)
       }
     }
 
@@ -43,7 +43,7 @@ class CheckoutTest extends FunSpec
       Get(s"/allCheckouts") ~> testRoutes ~> check {
         status.isSuccess() shouldBe(true)
         val checkoutsJson = jsArrayToArrayOf[Checkout]
-        checkoutsJson.map(_.memberId) shouldEqual(Seq(s"member #${id1}", s"member #${id2}"))
+        checkoutsJson.map(_.id) shouldEqual(Seq(id1, id2))
       }
     }
   }
@@ -54,7 +54,7 @@ class CheckoutTest extends FunSpec
 
   describe("items") {
     it("returns created line item on post") {
-      when(mockItemDatabase.retrieveItem("444")).thenReturn(Item("1", "444", "Eggs", BigDecimal(4.44)))
+      when(mockItemDatabase.retrieveItem("444")).thenReturn(Some(Item("1", "444", "Eggs", BigDecimal(4.44))))
 
       Post(s"/checkouts/${id1}/items", "444") ~> testRoutes ~> check {
         responseAs[String].parseJson.convertTo[Item] shouldEqual(Item("1", "444", "Eggs", BigDecimal(4.44)))
@@ -62,8 +62,8 @@ class CheckoutTest extends FunSpec
     }
 
     it("attaches items to checkout on post") {
-      when(mockItemDatabase.retrieveItem("333")).thenReturn(Item("1", "333", "Milk", BigDecimal(2.79)))
-      when(mockItemDatabase.retrieveItem("444")).thenReturn(Item("2", "444", "Eggs", BigDecimal(4.44)))
+      when(mockItemDatabase.retrieveItem("333")).thenReturn(Some(Item("1", "333", "Milk", BigDecimal(2.79))))
+      when(mockItemDatabase.retrieveItem("444")).thenReturn(Some(Item("2", "444", "Eggs", BigDecimal(4.44))))
 
       Post(s"/checkouts/${id1}/items", "333") ~> testRoutes ~> check {}
       Post(s"/checkouts/${id1}/items", "444") ~> testRoutes ~> check {}
@@ -77,7 +77,7 @@ class CheckoutTest extends FunSpec
     }
 
     it("returns error when scanned item not in database") {
-      when(mockItemDatabase.retrieveItem("444")).thenReturn(null)
+      when(mockItemDatabase.retrieveItem("444")).thenReturn(None)
 
       Post(s"/checkouts/${id1}/items", "444") ~> testRoutes ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -101,7 +101,6 @@ class CheckoutTest extends FunSpec
 
       Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
         val checkout = responseAs[String].parseJson.convertTo[Checkout]
-        checkout.memberId shouldEqual "42"
         checkout.member.phoneNumber shouldEqual("719-287-4335")
       }
     }
