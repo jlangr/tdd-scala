@@ -88,7 +88,7 @@ class CheckoutTest extends FunSpec
     }
 
     it("returns error when checkout not found") {
-      Post(s"/checkouts/999/items", "444") ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
+      Post(s"/checkouts/999/items", "444") ~> testRoutes ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[String] shouldEqual "invalid checkout id: 999"
       }
@@ -109,7 +109,7 @@ class CheckoutTest extends FunSpec
     }
 
     it("returns error when checkout not found") {
-      Post(s"/checkouts/999/member", "whatever") ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
+      Post(s"/checkouts/999/member", "whatever") ~> testRoutes ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[String] shouldEqual "invalid checkout id: 999"
       }
@@ -119,7 +119,7 @@ class CheckoutTest extends FunSpec
       when(mockMemberDatabase.memberLookup("719-287-4335"))
         .thenReturn(None)
 
-      Post(s"/checkouts/${id1}/member", "719-287-4335") ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
+      Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[String] shouldEqual "phone number not found: 719-287-4335"
       }
@@ -139,9 +139,25 @@ class CheckoutTest extends FunSpec
     }
 
     it("returns error when checkout not found") {
-      Get(s"/checkouts/999/total", "whatever") ~> Route.seal(TestCheckoutRoutes.routes()) ~> check {
+      Get(s"/checkouts/999/total", "whatever") ~> testRoutes ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[String] shouldEqual "invalid checkout id: 999"
+      }
+    }
+
+    it("applies member discount") {
+      when(mockItemDatabase.retrieveItem("11"))
+        .thenReturn(Some(Item("1", "11", "A", BigDecimal(10.00))))
+      when(mockItemDatabase.retrieveItem("22"))
+        .thenReturn(Some(Item("2", "22", "B", BigDecimal(20.00))))
+      when(mockMemberDatabase.memberLookup("719-287-4335"))
+        .thenReturn(Some(Member("42", "719-287-4335", "X", BigDecimal(0.1))))
+      Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
+      Post(s"/checkouts/${id1}/items", "11") ~> testRoutes ~> check {}
+      Post(s"/checkouts/${id1}/items", "22") ~> testRoutes ~> check {}
+
+      Get(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
+        responseAs[String] shouldEqual "27.00"
       }
     }
   }
