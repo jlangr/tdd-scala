@@ -34,8 +34,7 @@ class CheckoutTest extends FunSpec
     it("returns created checkout by ID") {
       Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
         status.isSuccess() shouldBe(true)
-        val checkout: Checkout = responseAs[String].parseJson.convertTo[Checkout]
-        checkout.id shouldEqual(id1)
+        convertJsonResponseTo[Checkout].id shouldEqual(id1)
       }
     }
 
@@ -50,8 +49,6 @@ class CheckoutTest extends FunSpec
     }
   }
 
-  // TODO async at server?
-
   // TODO change GET checkout from query param
 
   describe("items") {
@@ -59,7 +56,7 @@ class CheckoutTest extends FunSpec
       when(mockItemDatabase.retrieveItem("444")).thenReturn(Some(Item("1", "444", "Eggs", BigDecimal(4.44), false)))
 
       Post(s"/checkouts/${id1}/items", "444") ~> testRoutes ~> check {
-        responseAs[String].parseJson.convertTo[Item] shouldEqual(Item("1", "444", "Eggs", BigDecimal(4.44), false))
+        convertJsonResponseTo[Item] shouldEqual(Item("1", "444", "Eggs", BigDecimal(4.44), false))
       }
     }
 
@@ -71,8 +68,7 @@ class CheckoutTest extends FunSpec
       Post(s"/checkouts/${id1}/items", "444") ~> testRoutes ~> check {}
 
       Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
-        val checkout = responseAs[String].parseJson.convertTo[Checkout]
-        checkout.items shouldEqual List(
+        convertJsonResponseTo[Checkout].items shouldEqual List(
           Item("1", "333", "Milk", BigDecimal(2.79), false),
           Item("2", "444", "Eggs", BigDecimal(4.44), false))
       }
@@ -103,8 +99,7 @@ class CheckoutTest extends FunSpec
       Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {}
 
       Get(s"/checkouts?id=${id1}") ~> testRoutes ~> check {
-        val checkout = responseAs[String].parseJson.convertTo[Checkout]
-        checkout.member.get.phoneNumber shouldEqual("719-287-4335")
+        convertJsonResponseTo[Checkout].member.get.phoneNumber shouldEqual("719-287-4335")
       }
     }
 
@@ -186,5 +181,9 @@ class CheckoutTest extends FunSpec
 
   private def postCheckout = {
     Post("/checkouts", "") ~> testRoutes ~> check { responseAs[String] }
+  }
+
+  def convertJsonResponseTo[T: JsonReader] = {
+    responseAs[String].parseJson.convertTo[T]
   }
 }

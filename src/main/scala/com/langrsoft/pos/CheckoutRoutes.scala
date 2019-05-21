@@ -8,7 +8,7 @@ import CheckoutJsonSupport._
 import scala.collection.mutable.ListBuffer
 
 trait CheckoutRoutes {
-  var checkouts: ListBuffer[Checkout] = ListBuffer[Checkout]()
+  val checkouts: ListBuffer[Checkout] = ListBuffer[Checkout]()
   val itemDatabase: Inventory
   val memberDatabase: MemberDatabase
 
@@ -121,4 +121,5 @@ object CheckoutRoutesImpl extends CheckoutRoutes {
   val itemDatabase = new Inventory()
   val memberDatabase = new MemberDatabase()
 }
-//  val stuff: concurrent.Future[String] = Unmarshal(entity).to[String]
+
+//  TODO val stuff: concurrent.Future[String] = Unmarshal(entity).to[String]
