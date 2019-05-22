@@ -10,6 +10,7 @@ import CheckoutJsonSupport._
 import scala.collection.mutable.ListBuffer
 import scala.math.BigDecimal.RoundingMode
 
+// This trait does a couple or more core things. How might you split it up?
 trait CheckoutRoutes {
   val checkouts: ListBuffer[Checkout] = ListBuffer[Checkout]()
   val itemDatabase: Inventory
@@ -21,16 +22,13 @@ trait CheckoutRoutes {
     concat(pathPrefix("checkouts") {
       concat(
         path(Segment / "items") {
-          checkoutId => { post { postItem(checkoutId) } }
+          checkoutId => post { postItem(checkoutId) }
         },
         path(Segment / "member") {
-          checkoutId => { post { postMember(checkoutId) } }
+          checkoutId => post { postMember(checkoutId) }
         },
         path(Segment / "total") {
-          checkoutId => { get { getTotal(checkoutId) } ~ post { postTotal(checkoutId)} }
-        },
-        path(Segment / "receipt") {
-          checkoutId => { get { getReceipt(checkoutId) } }
+          checkoutId => get { getTotal(checkoutId) } ~ post { postTotal(checkoutId)}
         },
         path("clear") {
           clearAllCheckouts()
@@ -44,19 +42,31 @@ trait CheckoutRoutes {
     })
   }
 
-  // TODO: factor these
   private def postMember(checkoutId: String) = {
-    findCheckout(checkoutId) map completeAttachMember getOrElse completeCheckoutNotFound(checkoutId)
+    fulfillCheckoutRequest(checkoutId, completeAttachMember)
   }
 
   private def postItem(checkoutId: String) = {
-    findCheckout(checkoutId) map completeAddItem getOrElse completeCheckoutNotFound(checkoutId)
+    fulfillCheckoutRequest(checkoutId, completeAddItem)
   }
 
   private def getTotal(checkoutId: String) = {
-    findCheckout(checkoutId) map completeTotal getOrElse completeCheckoutNotFound(checkoutId)
+    fulfillCheckoutRequest(checkoutId, completeGetTotal)
   }
 
+  private def postTotal(checkoutId: String) = {
+    fulfillCheckoutRequest(checkoutId, completeTotal)
+  }
+
+  private def fulfillCheckoutRequest(checkoutId: String, completeFn: Checkout => Route) = {
+    findCheckout(checkoutId) map completeFn getOrElse completeCheckoutNotFound(checkoutId)
+  }
+
+  // This function is a mess. What smells does it exhibit?
+  // Do some function extracts and renames.
+  // Get rid of lies & clutter.
+  // Take advantage of other constructs that already exist.
+  // See how much you can improve it.
   private def createReceipt(retrievedCheckout: Checkout) = {
     var total = BigDecimal(0)
     var totalOfDiscountedItems = BigDecimal(0)
@@ -72,12 +82,12 @@ trait CheckoutRoutes {
       .foreach(item => {
         val price = item.price
         val isExempt = item.isExemptFromDiscount
-        if (!isExempt && discount > 0) {
+        if (!isExempt && discount > 0) { // exempt form discount and pos. disc
           val discountAmount = discount * price
           val discountedPrice = price * (1.0 - discount)
 
           // add into total
-          totalOfDiscountedItems += discountedPrice;
+          totalOfDiscountedItems += discountedPrice
 
           var text = item.description
           val amount = (price * 100 / 100).setScale(2).toString
@@ -87,7 +97,7 @@ trait CheckoutRoutes {
 
           val discountPctFormatted = (discount * 100).round(new MathContext(0)).toInt
           val discountFormatted = "-" + discountAmount.setScale(2, RoundingMode.HALF_EVEN)
-          textWidth = LineWidth - discountFormatted.length;
+          textWidth = LineWidth - discountFormatted.length
           text = s"   ${discountPctFormatted}% mbr disc"
           lineItems += s"${pad(text, textWidth)}${discountFormatted}"
 
@@ -95,8 +105,9 @@ trait CheckoutRoutes {
 
           totalSaved += discountAmount
         } else {
+          // undiscounted
           val text = item.description
-          val amount = price.setScale(2, RoundingMode.HALF_EVEN).toString
+          val amount = price.setScale(2, RoundingMode.HALF_EVEN).toString // round
           val amountWidth = amount.length
           val textWidth = LineWidth - amountWidth
           lineItems += pad(text, textWidth) + amount
@@ -104,43 +115,27 @@ trait CheckoutRoutes {
           total += item.price
         }
       })
+
+    // Totals
     val amount = total.setScale(2, RoundingMode.HALF_EVEN).toString
     val amountWidth = amount.length
     val textWidth = LineWidth - amountWidth
     val totalLineItem = pad("TOTAL", textWidth) + amount
     var allLineItems = lineItems :+ totalLineItem
 
-    if (totalSaved > 0) {
+    if (totalSaved > 0) { // total saved
       val formattedTotal = totalSaved.setScale(2, RoundingMode.HALF_EVEN).toString
       val formattedTotalWidth = formattedTotal.length
       val textWidth = LineWidth - formattedTotalWidth
       allLineItems += pad("*** You saved:", textWidth) + formattedTotal
     }
 
-    //        totalOfDiscountedItems = Math.round(totalOfDiscountedItems * 100) / 100;
-    //
-    //        totalSaved = Math.round(totalSaved * 100) / 100;
+    // misc. totals
+    total = total.setScale(2, RoundingMode.HALF_EVEN)
+    totalSaved = totalSaved.setScale(2, RoundingMode.HALF_EVEN)
+    totalOfDiscountedItems = totalOfDiscountedItems.setScale(2, RoundingMode.HALF_EVEN)
 
-    allLineItems
-  }
-
-  private def getReceipt(checkoutId: String) = {
-    findCheckout(checkoutId).map(
-      checkout => {
-        val allLineItems = createReceipt(checkout)
-        complete(StatusCodes.Accepted, allLineItems.toList)
-      }
-    ).getOrElse(completeCheckoutNotFound(checkoutId))
-  }
-
-  private def postTotal(checkoutId: String) = {
-    println(s"all checkouts ${checkouts}")
-    val checkout = findCheckout(checkoutId).get  //map completeTotal getOrElse completeCheckoutNotFound(checkoutId)
-
-    checkout.receipt.total = discountedTotal(checkout)
-    checkout.receipt.lineItems = createReceipt(checkout).toList
-
-    complete(StatusCodes.Accepted, checkout)
+    Receipt(total, totalSaved, totalOfDiscountedItems, allLineItems.toList)
   }
 
   private def clearAllCheckouts() = {
@@ -166,13 +161,9 @@ trait CheckoutRoutes {
     checkouts.toList.find(checkout => checkout.id == checkoutId)
   }
 
-  private def completeTotal(retrievedCheckout: Checkout) : Route = {
-    val total: BigDecimal = discountedTotal(retrievedCheckout)
-    complete(StatusCodes.Accepted, total.setScale(2).toString())
-  }
-
-  private def discountedTotal(retrievedCheckout: Checkout) = {
+  private def completeGetTotal(retrievedCheckout: Checkout) : Route = {
     val discount = retrievedCheckout.member map (member => member.discount) getOrElse BigDecimal(0)
+    // could do group-by then reduce both...
     val total = retrievedCheckout.items
       .foldLeft(BigDecimal(0)) {
         (total, item) => {
@@ -180,7 +171,12 @@ trait CheckoutRoutes {
           total + item.price * discountTo
         }
       }
-    total
+    complete(StatusCodes.Accepted, total.setScale(2).toString())
+  }
+
+  private def completeTotal(checkout: Checkout) = {
+    checkout.receipt = createReceipt(checkout)
+    complete(StatusCodes.Accepted, checkout)
   }
 
   private def pad(s: String, length: Int) = {

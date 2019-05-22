@@ -174,27 +174,11 @@ class CheckoutTest extends FunSpec
       postItemResolvingToPrice("555", "Fancy eggs", 12.00)
 
       Post(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
-        println(s"response ==>  ${responseAs[String]}")
         val checkout = convertJsonResponseTo[Checkout]
         checkout.receipt.total shouldEqual 17.00
+        checkout.receipt.totalSaved shouldEqual 0.0
+        checkout.receipt.totalOfDiscountedItems shouldEqual 0.0
         checkout.receipt.lineItems
-          .shouldEqual(Seq(
-            "Milk                                     5.00",
-            "Fancy eggs                              12.00",
-            "TOTAL                                   17.00"))
-      }
-    }
-
-    // id not found
-  }
-
-  describe("receipt text lines") {
-    it("includes items and total") {
-      postItemResolvingToPrice("123", "Milk", 5.00)
-      postItemResolvingToPrice("555", "Fancy eggs", 12.00)
-
-      Get(s"/checkouts/${id1}/receipt") ~> testRoutes ~> check {
-        responseAs[String].parseJson.asInstanceOf[JsArray].elements.map(_.convertTo[String])
           .shouldEqual(Seq(
             "Milk                                     5.00",
             "Fancy eggs                              12.00",
@@ -207,8 +191,12 @@ class CheckoutTest extends FunSpec
       postItemResolvingToPrice("123", "Milk", 5.00)
       postItemResolvingToPrice("555", "Eggs", 2.79)
 
-      Get(s"/checkouts/${id1}/receipt") ~> testRoutes ~> check {
-        responseAs[String].parseJson.asInstanceOf[JsArray].elements.map(_.convertTo[String])
+      Post(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
+        val checkout = convertJsonResponseTo[Checkout]
+        checkout.receipt.total shouldEqual 7.01
+        checkout.receipt.totalSaved shouldEqual 0.78
+        checkout.receipt.totalOfDiscountedItems shouldEqual 7.01
+        checkout.receipt.lineItems
           .shouldEqual(Seq(
             "Milk                                     5.00",
             "   10% mbr disc                         -0.50",
@@ -217,6 +205,13 @@ class CheckoutTest extends FunSpec
             "TOTAL                                    7.01",
             "*** You saved:                           0.78"
           ))
+      }
+    }
+
+    it("returns error when checkout not found") {
+      Post(s"/checkouts/999/total") ~> testRoutes ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[String] shouldEqual "invalid checkout id: 999"
       }
     }
   }

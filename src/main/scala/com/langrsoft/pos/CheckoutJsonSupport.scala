@@ -7,12 +7,15 @@ case class Member(id: String, phoneNumber: String, name: String, discount: BigDe
 
 case class Item(id: String, upc: String, description: String, price: BigDecimal, isExemptFromDiscount: Boolean)
 
-case class Receipt(var total: BigDecimal = BigDecimal(0.0), var lineItems: List[String] = List())
+case class Receipt(var total: BigDecimal = BigDecimal(0.0),
+                   var totalSaved: BigDecimal = BigDecimal(0.0),
+                   var totalOfDiscountedItems: BigDecimal = BigDecimal(0.0),
+                   var lineItems: List[String] = List())
 
 case class Checkout(id: String, var items: List[Item], var receipt: Receipt, var member: Option[Member])
 
 object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit val aTotals = jsonFormat2(Receipt)
+  implicit val aTotals = jsonFormat4(Receipt)
 
   implicit val aMember = jsonFormat4(Member)
 
