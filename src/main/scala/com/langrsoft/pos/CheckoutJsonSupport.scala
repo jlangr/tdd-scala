@@ -7,9 +7,13 @@ case class Member(id: String, phoneNumber: String, name: String, discount: BigDe
 
 case class Item(id: String, upc: String, description: String, price: BigDecimal, isExemptFromDiscount: Boolean)
 
-case class Checkout(id: String, var items: List[Item], var member: Option[Member])
+case class Receipt(var total: BigDecimal = BigDecimal(0.0), var lineItems: List[String] = List())
+
+case class Checkout(id: String, var items: List[Item], var receipt: Receipt, var member: Option[Member])
 
 object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
+  implicit val aTotals = jsonFormat2(Receipt)
+
   implicit val aMember = jsonFormat4(Member)
 
   implicit val anItem = jsonFormat5(Item)
@@ -18,17 +22,18 @@ object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
     def write(checkout: Checkout) = {
       var fields: Map[String,JsValue] = Map(
         "id" -> JsString(checkout.id),
-        "items" -> JsArray(checkout.items.map(_.toJson).toVector))
+        "items" -> JsArray(checkout.items.map(_.toJson).toVector),
+        "receipt" -> checkout.receipt.toJson)
       if (!checkout.member.isEmpty) fields += ("member" -> checkout.member.toJson)
       JsObject(fields)
     }
 
     def read(value: JsValue): Checkout = {
-      value.asJsObject.getFields("id", "items", "member") match {
-        case Seq(JsString(id), JsArray(items), member) =>
-          new Checkout(id, items.map(_.convertTo[Item]).to[List], member.convertTo[Option[Member]])
-        case Seq(JsString(id), JsArray(items)) =>
-          new Checkout(id, items.map(_.convertTo[Item]).to[List], None)
+      value.asJsObject.getFields("id", "items", "receipt", "member") match {
+        case Seq(JsString(id), JsArray(items), totals, member) =>
+          new Checkout(id, items.map(_.convertTo[Item]).to[List], totals.convertTo[Receipt], member.convertTo[Option[Member]])
+        case Seq(JsString(id), JsArray(items), totals) =>
+          new Checkout(id, items.map(_.convertTo[Item]).to[List], totals.convertTo[Receipt], None)
       }
     }
   }

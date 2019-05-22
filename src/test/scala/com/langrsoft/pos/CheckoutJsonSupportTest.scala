@@ -8,8 +8,9 @@ import CheckoutJsonSupport._
 class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAndAfter with ScalatestRouteTest {
   describe("checkout JSON support") {
     val itemJson = """{"description":"Eggs","price":4.44,"isExemptFromDiscount":false,"upc":"444","id":"1"}"""
-    val checkoutJson = """{"id":"42","items":[{"description":"milk","price":4.98,"isExemptFromDiscount":false,"upc":"111222333","id":"1"}],"member":{"id":"42","phoneNumber":"719-287-4335","name":"Jeff Languid","discount":0.1}}"""
-    val noMemberCheckoutJson = """{"id":"42","items":[]}"""
+    val checkoutJson =
+      """{"id":"42","items":[{"description":"milk","price":4.98,"isExemptFromDiscount":false,"upc":"111222333","id":"1"}],"receipt":{"total":0.0,"lineItems":[]},"member":{"id":"42","phoneNumber":"719-287-4335","name":"Jeff Languid","discount":0.1}}"""
+    val noMemberCheckoutJson = """{"id":"42","items":[],"receipt":{"total":0.0,"lineItems":[]}}"""
 
     it("decodes a checkout") {
       val checkout = checkoutJson.parseJson.convertTo[Checkout]
@@ -25,13 +26,14 @@ class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAnd
     }
 
     it("encodes null member") {
-      val checkout = Checkout("42", List(), None)
+      val checkout = Checkout("42", List(), Receipt(), None)
       checkout.toJson.toString shouldEqual noMemberCheckoutJson
     }
 
     it("encodes a checkout") {
       val checkout = Checkout("42",
         List(Item("1", "111222333", "milk", BigDecimal(4.98), false)),
+        Receipt(),
         Some(Member("42", "719-287-4335", "Jeff Languid", BigDecimal(0.1)))
       )
 

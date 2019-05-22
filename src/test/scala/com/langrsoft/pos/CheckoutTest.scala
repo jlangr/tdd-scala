@@ -168,6 +168,25 @@ class CheckoutTest extends FunSpec
     }
   }
 
+  describe("post total") {
+    it("returns checkout with receipt and totals") {
+      postItemResolvingToPrice("123", "Milk", 5.00)
+      postItemResolvingToPrice("555", "Fancy eggs", 12.00)
+
+      Post(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
+        println(s"response ==>  ${responseAs[String]}")
+        val checkout = convertJsonResponseTo[Checkout]
+        checkout.receipt.total shouldEqual 17.00
+        checkout.receipt.lineItems
+          .shouldEqual(Seq(
+            "Milk                                     5.00",
+            "Fancy eggs                              12.00",
+            "TOTAL                                   17.00"))
+      }
+    }
+
+    // id not found
+  }
 
   describe("receipt text lines") {
     it("includes items and total") {
