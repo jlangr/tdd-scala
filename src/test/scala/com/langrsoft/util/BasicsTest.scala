@@ -1,10 +1,10 @@
 package com.langrsoft.util
 
-import org.scalatest.{FunSpec, ShouldMatchers}
+import org.scalatest.{FunSpec, Matchers}
 
 import scala.collection.mutable.ListBuffer
 
-class BasicsTest extends FunSpec with ShouldMatchers {
+class BasicsTest extends FunSpec with Matchers {
   describe("some javascript fundamentals") {
     ignore("supports basic math") {
       4 * 8 shouldEqual 0 // fix this

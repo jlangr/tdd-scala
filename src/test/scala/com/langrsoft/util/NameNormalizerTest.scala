@@ -1,64 +1,49 @@
 package com.langrsoft.util
 
-import org.scalatest.{BeforeAndAfter, FunSpec, ShouldMatchers }
+import org.scalatest.{BeforeAndAfter, FunSpec, Matchers }
 
-class NameNormalizerTest extends FunSpec with ShouldMatchers with BeforeAndAfter {
-  var normalizer: NameNormalizer = null
-
-  before {
-    normalizer = new NameNormalizer
-  }
-
+class NameNormalizerTest extends FunSpec with Matchers with BeforeAndAfter {
   describe("a name normalizer") {
     it("returns empty for empty name") {
-      normalizer.normalize("") shouldBe ""
+        NameNormalizer("") shouldBe ""
     }
 
     it("returns one-word names straight up") {
-      normalizer.normalize("Madonna").
-        shouldBe("Madonna")
+      NameNormalizer("Madonna") shouldBe "Madonna"
     }
 
     it("returns last, first for two part names") {
-      normalizer.normalize("Thomas Hardy").
-        shouldBe("Hardy, Thomas")
+      NameNormalizer("Thomas Hardy") shouldBe "Hardy, Thomas"
     }
 
-    it("removes leading and trailing whitespace") {
-      normalizer.normalize("  Plato  ").
-        shouldBe("Plato")
+    ignore("removes leading and trailing whitespace") {
+      NameNormalizer("  Plato  ") shouldBe "Plato"
     }
 
-    it("removes leading and trailing whitespace from non-mononym") {
-      normalizer.normalize("  Joe Smith  ").
-        shouldBe("Smith, Joe")
+    ignore("removes leading and trailing whitespace from non-mononym") {
+      NameNormalizer("  Joe Smith  ") shouldBe "Smith, Joe"
     }
 
-    it("includes middle initial") {
-      normalizer.normalize("Jeffrey John Langr").
-        shouldBe("Langr, Jeffrey J.")
+    ignore("includes middle initial") {
+      NameNormalizer("Jeffrey John Langr") shouldBe "Langr, Jeffrey J."
     }
 
-    it("includes multiple middle initials") {
-      normalizer.normalize("George Raymond Richard Martin").
-        shouldBe("Martin, George R. R.")
+    ignore("includes multiple middle initials") {
+      NameNormalizer("George Raymond Richard Martin") shouldBe "Martin, George R. R."
+    }
+
+    ignore("appends suffixes") {
+      NameNormalizer("Wile Evanier Coyote, Esq.") shouldBe "Coyote, Wile E., Esq."  // 1
     }
 
     // ***extra credit***
 
-    ignore("appends suffixes") {
-      normalizer.normalize("Wile Evanier Coyote, Esq."). // 1
-        shouldBe("Coyote, Wile E., Esq.")
-    }
-
     ignore("appends suffixes to mononym") {
-      normalizer.normalize("Madonna, Jr."). // 1
-        shouldBe("Madonna, Jr.")
+      NameNormalizer("Madonna, Jr.") shouldBe "Madonna, Jr."
     }
 
     ignore("throws when name contains too many commas") {
-      an [IllegalArgumentException] should be thrownBy
-        normalizer.normalize("Wile Evanier Coyote, Esq., Super Genius")
+      an [IllegalArgumentException] should be thrownBy NameNormalizer("Wile Evanier Coyote, Esq., Super Genius")
     }
   }
 }

@@ -1,11 +1,11 @@
 package com.langrsoft.pos
 
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import org.scalatest.{BeforeAndAfter, FunSpec, ShouldMatchers}
+import org.scalatest.{BeforeAndAfter, FunSpec, Matchers}
 import spray.json._
 import CheckoutJsonSupport._
 
-class CheckoutJsonSupportTest extends FunSpec with ShouldMatchers with BeforeAndAfter with ScalatestRouteTest {
+class CheckoutJsonSupportTest extends FunSpec with Matchers with BeforeAndAfter with ScalatestRouteTest {
   describe("checkout JSON support") {
     val itemJson = """{"description":"Eggs","price":4.44,"isExemptFromDiscount":false,"upc":"444","id":"1"}"""
     val checkoutJson =

@@ -15,17 +15,18 @@ resolvers ++= Seq(
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
 
 libraryDependencies ++=
-    Seq(
-        "com.typesafe.akka" %% "akka-slf4j" % "2.4.10",
+    Seq("com.typesafe.akka" %% "akka-slf4j" % "2.4.10",
         "com.typesafe.akka" %% "akka-http-core" % "10.0.9",
         "com.typesafe.akka" %% "akka-http-testkit" % "10.0.9",
         "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.9",
         "de.heikoseeberger" %% "akka-http-play-json" % "1.10.0",
         "com.typesafe.akka" %% "akka-http-xml" % "10.0.9",
         "com.typesafe" % "config" % "1.2.1",
-        "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test",
-        "org.mockito" % "mockito-core" % "1.10.17" % "test",
         "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
         "org.scalaj" %% "scalaj-http" % "2.3.0",
-        "commons-codec" % "commons-codec" % "1.10"
+        "commons-codec" % "commons-codec" % "1.10",
+        "org.mockito" % "mockito-scala_2.11" % "1.4.6" % "test",
+        "org.scalatest" % "scalatest_2.11" % "3.0.5" % "test",
+        "org.scalactic" %% "scalactic" % "3.0.5"
     )
+// "org.mockito" % "mockito-core" % "1.10.17" % "test",

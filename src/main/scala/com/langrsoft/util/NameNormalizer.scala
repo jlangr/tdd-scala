@@ -1,7 +1,7 @@
 package com.langrsoft.util
 
-class NameNormalizer {
-  def normalize(fullName: String) = {
+object NameNormalizer {
+  def apply(fullName: String) = {
     throwWhenContainsExcessCommas(fullName)
     val name = baseName(fullName.trim())
     if (isMononym(name))

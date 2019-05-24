@@ -164,14 +164,14 @@ trait CheckoutRoutes {
   private def completeGetTotal(retrievedCheckout: Checkout) : Route = {
     val discount = retrievedCheckout.member map (member => member.discount) getOrElse BigDecimal(0)
     // could do group-by then reduce both...
-    val total = retrievedCheckout.items
-      .foldLeft(BigDecimal(0)) {
-        (total, item) => {
-          val discountTo = if (item.isExemptFromDiscount) BigDecimal(1) else BigDecimal(1.0) - discount
-          total + item.price * discountTo
-        }
-      }
+    val total = retrievedCheckout.items.foldLeft(BigDecimal(0))(sumTotal(discount))
     complete(StatusCodes.Accepted, total.setScale(2).toString())
+  }
+
+  private def sumTotal(discount: BigDecimal) = {
+    (total: BigDecimal, item: Item) =>
+      val discountTo = if (item.isExemptFromDiscount) BigDecimal(1) else BigDecimal(1.0) - discount
+      total + item.price * discountTo
   }
 
   private def completeTotal(checkout: Checkout) = {

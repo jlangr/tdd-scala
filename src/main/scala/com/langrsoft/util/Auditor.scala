@@ -1,5 +1,5 @@
 package com.langrsoft.util
 
 trait Auditor {
-  def audit(symbol: String, date: java.util.Date = new java.util.Date())
+  def audit(symbol: String, date: org.joda.time.DateTime)
 }

@@ -4,16 +4,17 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.langrsoft.pos.CheckoutJsonSupport._
+import org.mockito.IdiomaticMockito
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfter, FunSpec, ShouldMatchers}
+import org.scalatest.{BeforeAndAfter, FunSpec, Matchers}
 import spray.json._
 
 class CheckoutTest extends FunSpec
-    with ShouldMatchers
+    with Matchers
     with BeforeAndAfter
-    with ScalatestRouteTest
-    with MockitoSugar {
+    with IdiomaticMockito
+    with ScalatestRouteTest {
   val mockItemDatabase = mock[Inventory]
   val mockMemberDatabase = mock[MemberDatabase]
 
