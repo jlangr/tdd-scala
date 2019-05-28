@@ -6,7 +6,6 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.langrsoft.pos.CheckoutJsonSupport._
 import org.mockito.IdiomaticMockito
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfter, FunSpec, Matchers}
 import spray.json._
 

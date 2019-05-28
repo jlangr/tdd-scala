@@ -4,10 +4,8 @@ import org.joda.time.DateTime
 
 import scala.collection.mutable
 
-class Portfolio {
+class Portfolio(var stockService: StockService) {
   val auditor: Auditor = new FSAuditor()
-
-  val stockService: StockService = new NASDAQStockService()
 
   // either do mutable.map or do a var
   val symbols = mutable.Map[String, Integer]()
@@ -27,8 +25,16 @@ class Portfolio {
   def shares(symbol: String): Integer =
     symbols.getOrElse(symbol, 0)
 
-  def value: Integer =
+  def valueByHand(service: StockService) = {
+    val soleSymbol = symbols.keySet.head
+    service.price(soleSymbol)
+  }
+
+  def value =
     symbols.keysIterator.foldLeft(0) {
       (total, symbol) => total + stockService.price(symbol) * shares(symbol)
     }
 }
+//object ProductionPortfolio extends Portfolio {
+//  override val stockService = new NASDAQStockService()
+//}

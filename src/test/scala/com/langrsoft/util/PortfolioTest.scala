@@ -1,10 +1,12 @@
 package com.langrsoft.util
 
 import org.mockito.{IdiomaticMockito, MockitoSugar}
-//import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfter, FunSpec, Matchers}
 import org.mockito.Mockito._
-//import org.mockito.Matchers.{any, eq => stringEq }
+
+//object TestPortfolio extends Portfolio with IdiomaticMockito {
+//  override val stockService = mock[StockService]
+//}
 
 class PortfolioTest extends FunSpec
   with Matchers with BeforeAndAfter
@@ -12,10 +14,11 @@ class PortfolioTest extends FunSpec
 {
   val BayerPrice = 19
   val IbmPrice = 19
-  var portfolio: Portfolio = null
+  var portfolio: Portfolio = _
+  val stockService = mock[StockService]
 
   before {
-    portfolio = new Portfolio
+    portfolio = new Portfolio(stockService)
 //    portfolio.auditor = mock[Auditor]
   }
 
@@ -27,8 +30,6 @@ class PortfolioTest extends FunSpec
     it("has size 0 when created") {
       portfolio.size shouldBe 0
     }
-
-    // TODO: nesting describe / it
 
     it("is no longer empty after purchase") {
       portfolio.purchase("BAYN", 10)
@@ -85,15 +86,15 @@ class PortfolioTest extends FunSpec
         portfolio.value shouldBe 0
       }
 
-//      it("is share value after purchase single share") {
-//        portfolio.stockService = new StockService {
-//          override def price(symbol: String): Integer = BayerPrice
-//        }
-//
-//        portfolio.purchase("BAYN", 1)
-//
-//        portfolio.value shouldBe BayerPrice
-//      }
+      it("is share value after purchase single share") {
+        val stockService = new StockService {
+          override def price(symbol: String): Integer = BayerPrice
+        }
+
+        portfolio.purchase("BAYN", 1)
+
+        portfolio.valueByHand(stockService) shouldBe BayerPrice
+      }
 //
 //      it("multiples price by shares") {
 //        portfolio.stockService = new StockService {
@@ -124,14 +125,15 @@ class PortfolioTest extends FunSpec
 
     describe("value using mockito") {
       it("accumulates prices for all symbols") {
-//        portfolio.stockService = mock[StockService]
-//        when(portfolio.stockService.price("BAYN")).thenReturn(BayerPrice)
-//        when(portfolio.stockService.price("IBM")). thenReturn(IbmPrice)
-//
-//        portfolio.purchase("BAYN", 10)
-//        portfolio.purchase("IBM", 20)
-//
-//        portfolio.value shouldBe BayerPrice * 10 + IbmPrice * 20
+        val stockService = mock[StockService]
+        val portfolio = new Portfolio(stockService)
+        when(stockService.price("BAYN")) thenReturn(BayerPrice)
+        when(stockService.price("IBM")) thenReturn(IbmPrice)
+
+        portfolio.purchase("BAYN", 10)
+        portfolio.purchase("IBM", 20)
+
+        portfolio.value shouldBe BayerPrice * 10 + IbmPrice * 20
       }
     }
 

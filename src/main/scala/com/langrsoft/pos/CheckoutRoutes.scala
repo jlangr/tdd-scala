@@ -220,5 +220,3 @@ object CheckoutRoutesImpl extends CheckoutRoutes {
   val itemDatabase = new Inventory()
   val memberDatabase = new MemberDatabase()
 }
-
-//  TODO val stuff: concurrent.Future[String] = Unmarshal(entity).to[String]
