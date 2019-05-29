@@ -1,16 +1,14 @@
 package com.langrsoft.util
 
-import org.mockito.{IdiomaticMockito, MockitoSugar}
+import org.joda.time.{DateTime, Seconds}
+import org.mockito.captor.{ArgCaptor, Captor}
+import org.mockito.{ArgumentMatchersSugar, IdiomaticMockito, MockitoSugar}
 import org.scalatest.{BeforeAndAfter, FunSpec, Matchers}
-import org.mockito.Mockito._
-
-//object TestPortfolio extends Portfolio with IdiomaticMockito {
-//  override val stockService = mock[StockService]
-//}
 
 class PortfolioTest extends FunSpec
   with Matchers with BeforeAndAfter
   with IdiomaticMockito
+  with ArgumentMatchersSugar
 {
   val BayerPrice = 19
   val IbmPrice = 19
@@ -19,7 +17,6 @@ class PortfolioTest extends FunSpec
 
   before {
     portfolio = new Portfolio(stockService)
-//    portfolio.auditor = mock[Auditor]
   }
 
   describe("a portfolio") {
@@ -88,38 +85,12 @@ class PortfolioTest extends FunSpec
 
       it("is share value after purchase single share") {
         val stockService = new StockService {
-          override def price(symbol: String): Integer = BayerPrice
+          override def price(symbol: String): Int = BayerPrice
         }
 
         portfolio.purchase("BAYN", 1)
 
         portfolio.valueByHand(stockService) shouldBe BayerPrice
-      }
-//
-//      it("multiples price by shares") {
-//        portfolio.stockService = new StockService {
-//          override def price(symbol: String): Integer = BayerPrice
-//        }
-//
-//        portfolio.purchase("BAYN", 10)
-//
-//        portfolio.value shouldBe BayerPrice * 10
-//      }
-//
-      it("accumulates prices for all symbols") {
-//        portfolio.stockService = new StockService {
-//          def price(symbol: String): Integer = {
-//            symbol match {
-//              case "BAYN" => BayerPrice
-//              case "IBM" => IbmPrice
-//            }
-//          }
-//        }
-//
-//        portfolio.purchase("BAYN", 10)
-//        portfolio.purchase("IBM", 20)
-//
-//        portfolio.value shouldBe BayerPrice * 10 + IbmPrice * 20
       }
     }
 
@@ -127,35 +98,62 @@ class PortfolioTest extends FunSpec
       it("accumulates prices for all symbols") {
         val stockService = mock[StockService]
         val portfolio = new Portfolio(stockService)
-        when(stockService.price("BAYN")) thenReturn(BayerPrice)
-        when(stockService.price("IBM")) thenReturn(IbmPrice)
+        stockService.price("BAYN") shouldReturn(BayerPrice)
+        stockService.price("IBM") shouldReturn(IbmPrice)
 
         portfolio.purchase("BAYN", 10)
         portfolio.purchase("IBM", 20)
 
         portfolio.value shouldBe BayerPrice * 10 + IbmPrice * 20
       }
+
+      it("sets value to 0 on throw") {
+        val stockService = mock[StockService]
+        val portfolio = new Portfolio(stockService)
+        stockService.price("IBM") shouldThrow(new RuntimeException)
+
+        portfolio.purchase("IBM", 20)
+
+        portfolio.value shouldBe 0
+      }
     }
 
-//    describe("transaction audits") {
-//      it("audits on purchase") {
-//        portfolio.purchase("BAYN", 10)
-//
-//        // if one matcher used all args must use matchers
-//        verify(portfolio.auditor).
-//          audit(stringEq("Purchased 10 shares of BAYN"), any[java.util.Date])
-//      }
-//    }
+    describe("transaction audits") {
+      it("audits on purchase") {
+        val stockService = mock[StockService]
+        val auditor = mock[Auditor]
+        val portfolio = new Portfolio(stockService, Some(auditor))
+
+        portfolio.purchase("BAYN", 10)
+
+        auditor.audit("buy: 10 of BAYN", any[DateTime]) was called
+      }
+
+      it("checks up on the argument") {
+        val stockService = mock[StockService]
+        val auditor = mock[Auditor]
+        val portfolio = new Portfolio(stockService, Some(auditor))
+        val captor = ArgCaptor[DateTime]
+        val now = new DateTime
+
+        portfolio.purchase("BAYN", 10)
+
+        auditor.audit("buy: 10 of BAYN", captor) was called
+        secondsBetween(captor.value, now) should be < 1
+      }
+
+      it("re-throws when auditor throws") {
+        val stockService = mock[StockService]
+        val auditor = mock[Auditor]
+        val portfolio = new Portfolio(stockService, Some(auditor))
+        new RuntimeException willBe thrown by auditor.audit(*, *)
+
+        an [AuditException] should be thrownBy portfolio.purchase("", 1)
+      }
+    }
+  }
+
+  private def secondsBetween(before: DateTime, now: DateTime) = {
+    Seconds.secondsBetween(now, before).getSeconds
   }
 }
-
-
-// TODO: partial classes?
-// default values on arguments?
-// ...
-// injection techniques; polymorphism
-// scalatest vs mockito
-// what's the [] syntax for mockito?
-// what is a case class
-// date type?
-

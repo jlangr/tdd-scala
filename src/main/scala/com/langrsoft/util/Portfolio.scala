@@ -1,11 +1,13 @@
 package com.langrsoft.util
 
+import scala.collection.mutable
+import scala.util.Try
+
 import org.joda.time.DateTime
 
-import scala.collection.mutable
+class AuditException extends RuntimeException
 
-class Portfolio(var stockService: StockService) {
-  val auditor: Auditor = new FSAuditor()
+class Portfolio(var stockService: StockService, auditor: Option[Auditor] = None) {
 
   // either do mutable.map or do a var
   val symbols = mutable.Map[String, Integer]()
@@ -18,7 +20,14 @@ class Portfolio(var stockService: StockService) {
     sharesToBuy match {
       case n if n > 0 =>
         symbols += symbol -> (sharesToBuy + shares(symbol))
-//        auditor.audit(s"Purchased $sharesToBuy shares of $symbol", new DateTime())
+        if (auditor.nonEmpty) {
+          try {
+            auditor.get.audit(s"buy: $sharesToBuy of $symbol", new DateTime)
+          }
+          catch {
+            case _: RuntimeException => throw new AuditException()
+          }
+        }
       case _ => throw new InvalidPurchaseException
     }
 
@@ -32,7 +41,10 @@ class Portfolio(var stockService: StockService) {
 
   def value =
     symbols.keysIterator.foldLeft(0) {
-      (total, symbol) => total + stockService.price(symbol) * shares(symbol)
+      (total, symbol) => {
+        val sharePrice = Try(stockService.price(symbol)).getOrElse(0)
+        total + (shares(symbol) * sharePrice)
+      }
     }
 }
 //object ProductionPortfolio extends Portfolio {
