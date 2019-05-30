@@ -1,0 +1,37 @@
+FunSpec vs FlatSpec vs. ...
+
+http://www.scalatest.org/user_guide/selecting_a_style
+
+
+it("does stuff") vs. they("do stuff")
+
+
+org.scalatest.run(new SetSpec)
+org.scalatest.run(new SetSuite, "size 0") // match on test name
+
+If you wish to temporarily ignore an entire suite of tests (on the Java VM only, not scalajs): use @org.scalatest.Ignore on the test class
+
+
+Nesting FunSpec:
+
+https://www.artima.com/forums/flat.jsp?forum=284&thread=346295 (2012)
+
+The way to do what you want in ScalaTest is to use a "path" trait (from the org.scalatest.path package). In a path trait, if you place code lexically before a test, it will happen before. If you place it after the test, it will happen after, because for each test, ScalaTest will execute just the "path" to and from that test. Here's the documentation:
+
+
+
+mockito-scala
+https://github.com/mockito/mockito-scala
+
+
+
+org.scalactic : scalactic_2.12.3
+
+
+Stuff from Mihai:
+
+https://github.com/MihaiOnSoftware/todo-akka/blob/master/src/main/scala/com/mpopescu/todoakka/todo/routes/TodoRouting.scala
+
+https://github.com/MihaiOnSoftware/mars-rover-scala/blob/master/src/main/scala/movement/instruction/Context.scala
+
+https://stackoverflow.com/questions/7484928/what-does-a-lazy-val-do
