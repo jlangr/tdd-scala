@@ -16,33 +16,33 @@ class NameNormalizerTest extends FunSpec with Matchers with BeforeAndAfter {
       NameNormalizer("Thomas Hardy") shouldBe "Hardy, Thomas"
     }
 
-    ignore("removes leading and trailing whitespace") {
+    it("removes leading and trailing whitespace") {
       NameNormalizer("  Plato  ") shouldBe "Plato"
     }
 
-    ignore("removes leading and trailing whitespace from non-mononym") {
+    it("removes leading and trailing whitespace from non-mononym") {
       NameNormalizer("  Joe Smith  ") shouldBe "Smith, Joe"
     }
 
-    ignore("includes middle initial") {
+    it("includes middle initial") {
       NameNormalizer("Jeffrey John Langr") shouldBe "Langr, Jeffrey J."
     }
 
-    ignore("includes multiple middle initials") {
+    it("includes multiple middle initials") {
       NameNormalizer("George Raymond Richard Martin") shouldBe "Martin, George R. R."
     }
 
-    ignore("appends suffixes") {
+    it("appends suffixes") {
       NameNormalizer("Wile Evanier Coyote, Esq.") shouldBe "Coyote, Wile E., Esq."  // 1
     }
 
     // ***extra credit***
 
-    ignore("appends suffixes to mononym") {
+    it("appends suffixes to mononym") {
       NameNormalizer("Madonna, Jr.") shouldBe "Madonna, Jr."
     }
 
-    ignore("throws when name contains too many commas") {
+    it("throws when name contains too many commas") {
       an [IllegalArgumentException] should be thrownBy NameNormalizer("Wile Evanier Coyote, Esq., Super Genius")
     }
   }
