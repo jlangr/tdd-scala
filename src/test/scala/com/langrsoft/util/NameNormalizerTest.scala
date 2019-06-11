@@ -20,10 +20,6 @@ class NameNormalizerTest extends FunSpec with Matchers with BeforeAndAfter {
       NameNormalizer("  Plato  ") shouldBe "Plato"
     }
 
-    ignore("removes leading and trailing whitespace from non-mononym") {
-      NameNormalizer("  Joe Smith  ") shouldBe "Smith, Joe"
-    }
-
     ignore("includes middle initial") {
       NameNormalizer("Jeffrey John Langr") shouldBe "Langr, Jeffrey J."
     }
@@ -36,15 +32,17 @@ class NameNormalizerTest extends FunSpec with Matchers with BeforeAndAfter {
       NameNormalizer("Wile Evanier Coyote, Esq.") shouldBe "Coyote, Wile E., Esq."  // 1
     }
 
-    // ***extra credit***
-
-    ignore("appends suffixes to mononym") {
-      NameNormalizer("Madonna, Jr.") shouldBe "Madonna, Jr."
-    }
-
     ignore("throws when name contains too many commas") {
       an [IllegalArgumentException] should be thrownBy NameNormalizer("Wile Evanier Coyote, Esq., Super Genius")
     }
+
+    // Extra Credit:
+    //  salutations, e.g. Mr. Edmund Langr. U.S. Salutations are recognized as
+    //     one of Mr., Mrs., Ms., and Dr.--either with or without the period.
+    //     Anything else should be recognized as a first name
+
+    // What other tests should you write? Not new features but things you know as a programmer
+    // that you probably needed? (Or do you need them? Discuss.)
   }
 }
 
