@@ -73,19 +73,14 @@ trait CheckoutRoutes {
 
     retrievedCheckout.items
       .foreach(item => {
+        lineItems += createLineItem(item.price, item.description)
         if (isDiscountable(item) && memberDiscount(retrievedCheckout) > 0) {
-          val discountAmount = memberDiscount(retrievedCheckout) * item.price
-          val discountedPrice = item.price * (1.0 - memberDiscount(retrievedCheckout))
+          lineItems += createLineItem(-itemDiscountAmount(retrievedCheckout, item), s"   ${formatPercent(memberDiscount(retrievedCheckout))}% mbr disc")
 
-          lineItems += createLineItem(item.price, item.description)
-          lineItems += createLineItem(-discountAmount, s"   ${formatPercent(memberDiscount(retrievedCheckout))}% mbr disc")
-
-          totalOfDiscountedItems += discountedPrice
-          total += discountedPrice
-          totalSaved += discountAmount
+          totalOfDiscountedItems += discountedPrice(retrievedCheckout, item)
+          total += discountedPrice(retrievedCheckout, item)
+          totalSaved += itemDiscountAmount(retrievedCheckout, item)
         } else {
-          lineItems += createLineItem(item.price, item.description)
-
           total += item.price
         }
       })
@@ -95,6 +90,14 @@ trait CheckoutRoutes {
       lineItems += createLineItem(totalSaved, "*** You saved:")
 
     Receipt(round2(total), round2(totalSaved), round2(totalOfDiscountedItems), lineItems.toList)
+  }
+
+  private def discountedPrice(retrievedCheckout: Checkout, item: Item) = {
+    item.price * (1.0 - memberDiscount(retrievedCheckout))
+  }
+
+  private def itemDiscountAmount(retrievedCheckout: Checkout, item: Item) = {
+    memberDiscount(retrievedCheckout) * item.price
   }
 
   private def memberDiscount(retrievedCheckout: Checkout) = {
