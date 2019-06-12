@@ -82,8 +82,7 @@ trait CheckoutRoutes {
         lineItems += createLineItem(item.price, item.description)
         if (doesDiscountApply(checkout, item)) {
           val discountMessage = s"   ${formatPercent(memberDiscount(checkout))}% mbr disc"
-          lineItems += createLineItem(
-            -itemDiscountAmount(checkout, item), discountMessage)
+          lineItems += createLineItem(-itemDiscountAmount(checkout, item), discountMessage)
         }
       })
     lineItems
@@ -92,25 +91,22 @@ trait CheckoutRoutes {
   private def doesDiscountApply(checkout: Checkout, item: Item) =
     isDiscountable(item) && memberDiscount(checkout) > 0
 
-  def totalSaved(checkout: Checkout) = {
+  def totalSaved(checkout: Checkout) =
     checkout.items
       .filter(item => doesDiscountApply(checkout, item))
-      .foldLeft(BigDecimal(0)) {(total, item) => total + itemDiscountAmount(checkout, item) }
-  }
+      .foldLeft(BigDecimal(0)) {(total, item) => total + itemDiscountAmount(checkout, item)}
 
-  def totalDiscountedItems(retrievedCheckout: Checkout) = {
-    retrievedCheckout.items
-      .filter(item => doesDiscountApply(retrievedCheckout, item))
-      .foldLeft(BigDecimal(0)) {(total, item) => total + discountedPrice(retrievedCheckout, item)
-      }
-  }
+  def totalDiscountedItems(checkout: Checkout) =
+    checkout.items
+      .filter(item => doesDiscountApply(checkout, item))
+      .foldLeft(BigDecimal(0)) {(total, item) => total + discountedPrice(checkout, item)}
 
-  def totalAllItems(retrievedCheckout: Checkout) = {
+  def totalAllItems(checkout: Checkout) = {
     var total = BigDecimal(0)
-    retrievedCheckout.items
+    checkout.items
       .foreach(item => {
-        if (doesDiscountApply(retrievedCheckout, item))
-          total += discountedPrice(retrievedCheckout, item)
+        if (doesDiscountApply(checkout, item))
+          total += discountedPrice(checkout, item)
         else
           total += item.price
       })
