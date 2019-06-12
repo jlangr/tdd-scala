@@ -42,92 +42,109 @@ trait CheckoutRoutes {
     })
   }
 
-  private def postMember(checkoutId: String) = {
+  private def postMember(checkoutId: String) =
     fulfillCheckoutRequest(checkoutId, completeAttachMember)
-  }
 
-  private def postItem(checkoutId: String) = {
+  private def postItem(checkoutId: String) =
     fulfillCheckoutRequest(checkoutId, completeAddItem)
-  }
 
-  private def getTotal(checkoutId: String) = {
+  private def getTotal(checkoutId: String) =
     fulfillCheckoutRequest(checkoutId, completeGetTotal)
-  }
 
-  private def postTotal(checkoutId: String) = {
+  private def postTotal(checkoutId: String) =
     fulfillCheckoutRequest(checkoutId, completeTotal)
-  }
 
-  private def fulfillCheckoutRequest(checkoutId: String, completeFn: Checkout => Route) = {
+  private def fulfillCheckoutRequest(checkoutId: String, completeFn: Checkout => Route) =
     findCheckout(checkoutId) map completeFn getOrElse completeCheckoutNotFound(checkoutId)
-  }
 
   val LineWidth = 45
 
-  private def createReceipt(retrievedCheckout: Checkout) = {
-    var total = BigDecimal(0)
-    var totalOfDiscountedItems = BigDecimal(0)
-    var totalSaved = BigDecimal(0)
+  private def createReceipt(checkout: Checkout) = {
+    Receipt(
+      round2(totalAllItems(checkout)),
+      round2(totalSaved(checkout)),
+      round2(totalDiscountedItems(checkout)),
+      lineItems(checkout))
+  }
 
-    val lineItems = ListBuffer[String]()
+  private def lineItems(checkout: Checkout) = {
+    val lines = detailLineItems(checkout)
+    lines += createLineItem(totalAllItems(checkout), "TOTAL")
+    if (totalSaved(checkout) > 0)
+      lines += createLineItem(totalSaved(checkout), "*** You saved:")
+    lines.toList
+  }
 
-    retrievedCheckout.items
+  private def detailLineItems(checkout: Checkout) = {
+    var lineItems = ListBuffer[String]()
+    checkout.items
       .foreach(item => {
         lineItems += createLineItem(item.price, item.description)
-        if (isDiscountable(item) && memberDiscount(retrievedCheckout) > 0) {
-          lineItems += createLineItem(-itemDiscountAmount(retrievedCheckout, item), s"   ${formatPercent(memberDiscount(retrievedCheckout))}% mbr disc")
-
-          totalOfDiscountedItems += discountedPrice(retrievedCheckout, item)
-          total += discountedPrice(retrievedCheckout, item)
-          totalSaved += itemDiscountAmount(retrievedCheckout, item)
-        } else {
-          total += item.price
+        if (doesDiscountApply(checkout, item)) {
+          val discountMessage = s"   ${formatPercent(memberDiscount(checkout))}% mbr disc"
+          lineItems += createLineItem(
+            -itemDiscountAmount(checkout, item), discountMessage)
         }
       })
-
-    lineItems += createLineItem(total, "TOTAL")
-    if (totalSaved > 0)
-      lineItems += createLineItem(totalSaved, "*** You saved:")
-
-    Receipt(round2(total), round2(totalSaved), round2(totalOfDiscountedItems), lineItems.toList)
+    lineItems
   }
 
-  private def discountedPrice(retrievedCheckout: Checkout, item: Item) = {
+  private def doesDiscountApply(checkout: Checkout, item: Item) =
+    isDiscountable(item) && memberDiscount(checkout) > 0
+
+  def totalSaved(checkout: Checkout) = {
+    checkout.items
+      .filter(item => doesDiscountApply(checkout, item))
+      .foldLeft(BigDecimal(0)) {(total, item) => total + itemDiscountAmount(checkout, item) }
+  }
+
+  def totalDiscountedItems(retrievedCheckout: Checkout) = {
+    retrievedCheckout.items
+      .filter(item => doesDiscountApply(retrievedCheckout, item))
+      .foldLeft(BigDecimal(0)) {(total, item) => total + discountedPrice(retrievedCheckout, item)
+      }
+  }
+
+  def totalAllItems(retrievedCheckout: Checkout) = {
+    var total = BigDecimal(0)
+    retrievedCheckout.items
+      .foreach(item => {
+        if (doesDiscountApply(retrievedCheckout, item))
+          total += discountedPrice(retrievedCheckout, item)
+        else
+          total += item.price
+      })
+    total
+  }
+
+  private def discountedPrice(retrievedCheckout: Checkout, item: Item) =
     item.price * (1.0 - memberDiscount(retrievedCheckout))
-  }
 
-  private def itemDiscountAmount(retrievedCheckout: Checkout, item: Item) = {
+  private def itemDiscountAmount(retrievedCheckout: Checkout, item: Item) =
     memberDiscount(retrievedCheckout) * item.price
-  }
 
-  private def memberDiscount(retrievedCheckout: Checkout) = {
-    val memberDiscountAmount = if (hasMember(retrievedCheckout)) BigDecimal(0) else retrievedCheckout.member.get.discount
-    memberDiscountAmount
-  }
+  private def memberDiscount(retrievedCheckout: Checkout) =
+    if (hasMember(retrievedCheckout)) BigDecimal(0) else retrievedCheckout.member.get.discount
 
-  private def hasMember(retrievedCheckout: Checkout) = {
+  private def hasMember(retrievedCheckout: Checkout) =
     retrievedCheckout.member.isEmpty
-  }
 
-  private def isDiscountable(item: Item) = {
+  private def isDiscountable(item: Item) =
     !item.isExemptFromDiscount
-  }
 
   private def createLineItem(totalSaved: BigDecimal, messageText: String) = {
     val formattedTotal = round2(totalSaved)
     val formattedTotalWidth = formattedTotal.toString.length
     val textWidth = LineWidth - formattedTotalWidth
-    val message = pad(messageText, textWidth) + formattedTotal
-    message
+    pad(messageText, textWidth) + formattedTotal
   }
 
   private def round2(price: BigDecimal) = {
-    price.setScale(2, RoundingMode.HALF_EVEN)//.toString
+    price.setScale(2, RoundingMode.HALF_EVEN)
   }
 
-  private def formatPercent(discount: BigDecimal) = {
+  private def formatPercent(discount: BigDecimal) =
     (discount * 100).round(new MathContext(0)).toInt
-  }
 
   private def clearAllCheckouts() = {
     checkouts.clear()
