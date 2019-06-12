@@ -62,80 +62,68 @@ trait CheckoutRoutes {
     findCheckout(checkoutId) map completeFn getOrElse completeCheckoutNotFound(checkoutId)
   }
 
-  // This function is a mess. What smells does it exhibit?
-  // Do some function extracts and renames.
-  // Get rid of lies & clutter.
-  // Take advantage of other constructs that already exist.
-  // See how much you can improve it.
+  val LineWidth = 45
+
   private def createReceipt(retrievedCheckout: Checkout) = {
     var total = BigDecimal(0)
     var totalOfDiscountedItems = BigDecimal(0)
     var totalSaved = BigDecimal(0)
 
-    val LineWidth = 45
-
     val lineItems = ListBuffer[String]()
-
-    val discount = if (retrievedCheckout.member.isEmpty) BigDecimal(0) else retrievedCheckout.member.get.discount
 
     retrievedCheckout.items
       .foreach(item => {
-        val price = item.price
-        val isExempt = item.isExemptFromDiscount
-        if (!isExempt && discount > 0) { // exempt form discount and pos. disc
-          val discountAmount = discount * price
-          val discountedPrice = price * (1.0 - discount)
+        if (isDiscountable(item) && memberDiscount(retrievedCheckout) > 0) {
+          val discountAmount = memberDiscount(retrievedCheckout) * item.price
+          val discountedPrice = item.price * (1.0 - memberDiscount(retrievedCheckout))
 
-          // add into total
+          lineItems += createLineItem(item.price, item.description)
+          lineItems += createLineItem(-discountAmount, s"   ${formatPercent(memberDiscount(retrievedCheckout))}% mbr disc")
+
           totalOfDiscountedItems += discountedPrice
-
-          var text = item.description
-          val amount = (price * 100 / 100).setScale(2).toString
-          val amountWidth = amount.length
-          var textWidth = LineWidth - amountWidth
-          lineItems += pad(text, textWidth) + amount
-
-          val discountPctFormatted = (discount * 100).round(new MathContext(0)).toInt
-          val discountFormatted = "-" + discountAmount.setScale(2, RoundingMode.HALF_EVEN)
-          textWidth = LineWidth - discountFormatted.length
-          text = s"   ${discountPctFormatted}% mbr disc"
-          lineItems += s"${pad(text, textWidth)}${discountFormatted}"
-
           total += discountedPrice
-
           totalSaved += discountAmount
         } else {
-          // undiscounted
-          val text = item.description
-          val amount = price.setScale(2, RoundingMode.HALF_EVEN).toString // round
-          val amountWidth = amount.length
-          val textWidth = LineWidth - amountWidth
-          lineItems += pad(text, textWidth) + amount
+          lineItems += createLineItem(item.price, item.description)
 
           total += item.price
         }
       })
 
-    // Totals
-    val amount = total.setScale(2, RoundingMode.HALF_EVEN).toString
-    val amountWidth = amount.length
-    val textWidth = LineWidth - amountWidth
-    val totalLineItem = pad("TOTAL", textWidth) + amount
-    var allLineItems = lineItems :+ totalLineItem
+    lineItems += createLineItem(total, "TOTAL")
+    if (totalSaved > 0)
+      lineItems += createLineItem(totalSaved, "*** You saved:")
 
-    if (totalSaved > 0) { // total saved
-      val formattedTotal = totalSaved.setScale(2, RoundingMode.HALF_EVEN).toString
-      val formattedTotalWidth = formattedTotal.length
-      val textWidth = LineWidth - formattedTotalWidth
-      allLineItems += pad("*** You saved:", textWidth) + formattedTotal
-    }
+    Receipt(round2(total), round2(totalSaved), round2(totalOfDiscountedItems), lineItems.toList)
+  }
 
-    // misc. totals
-    total = total.setScale(2, RoundingMode.HALF_EVEN)
-    totalSaved = totalSaved.setScale(2, RoundingMode.HALF_EVEN)
-    totalOfDiscountedItems = totalOfDiscountedItems.setScale(2, RoundingMode.HALF_EVEN)
+  private def memberDiscount(retrievedCheckout: Checkout) = {
+    val memberDiscountAmount = if (hasMember(retrievedCheckout)) BigDecimal(0) else retrievedCheckout.member.get.discount
+    memberDiscountAmount
+  }
 
-    Receipt(total, totalSaved, totalOfDiscountedItems, allLineItems.toList)
+  private def hasMember(retrievedCheckout: Checkout) = {
+    retrievedCheckout.member.isEmpty
+  }
+
+  private def isDiscountable(item: Item) = {
+    !item.isExemptFromDiscount
+  }
+
+  private def createLineItem(totalSaved: BigDecimal, messageText: String) = {
+    val formattedTotal = round2(totalSaved)
+    val formattedTotalWidth = formattedTotal.toString.length
+    val textWidth = LineWidth - formattedTotalWidth
+    val message = pad(messageText, textWidth) + formattedTotal
+    message
+  }
+
+  private def round2(price: BigDecimal) = {
+    price.setScale(2, RoundingMode.HALF_EVEN)//.toString
+  }
+
+  private def formatPercent(discount: BigDecimal) = {
+    (discount * 100).round(new MathContext(0)).toInt
   }
 
   private def clearAllCheckouts() = {

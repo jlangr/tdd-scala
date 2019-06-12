@@ -186,56 +186,46 @@ class CheckoutTest extends FunSpec
       }
     }
 
-    it("does stuff") {
-      Post("/checkouts/clear") ~>
-        testRoutes ~> check {
-          status shouldEqual(StatusCodes.Accepted)
-      }
-      id1 = postCheckout
-      when(mockMemberDatabase.memberLookup("719-287-4335"))
-        .thenReturn(Some(Member("42", "719-287-4335", "Jeff Langr", BigDecimal(0.1))))
-      Post(s"/checkouts/${id1}/member", "719-287-4335") ~> testRoutes ~> check {
-        status shouldEqual(StatusCodes.Accepted)
-      }
-      val firstId = "1"
-      val itemToReturn123 = Item(firstId, "123", "Milk", 5.00, false)
-      when(mockItemDatabase.retrieveItem("123"))
-        .thenReturn(Some(itemToReturn123))
-      Post(s"/checkouts/${id1}/items", "123") ~> testRoutes ~> check {
-        status shouldEqual(StatusCodes.Accepted)
-      }
-      println(s"checkout id1: ${id1}")
-      val id2 = "2"
-      val itemToReturn555 = Item(id2, "555", "Eggs", 2.79, false)
-      when(mockItemDatabase.retrieveItem("555"))
-        .thenReturn(Some(itemToReturn555))
-      Post(s"/checkouts/${id1}/items", "555") ~> testRoutes ~> check {
-        status shouldEqual(StatusCodes.Accepted)
-      }
+    it("returns checkout totals") {
+      postMemberWithDiscount(BigDecimal(0.1))
+      postItemResolvingToPrice("123", "Milk", 10.00, false)
+      postItemResolvingToPrice("555", "Eggs", 10.00, false)
+
       Post(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
         val checkout = convertJsonResponseTo[Checkout]
-        checkout.receipt.total shouldEqual 7.01
-        checkout.receipt.totalSaved shouldEqual 0.78
-        checkout.receipt.totalOfDiscountedItems shouldEqual 7.01
-        val totalOfDiscountedItems = checkout.receipt.totalOfDiscountedItems
-        val lineItems = checkout.receipt.lineItems
-        println(s"${totalOfDiscountedItems}")
-        lineItems
+        checkout.receipt.total shouldEqual 18.00
+        checkout.receipt.totalOfDiscountedItems shouldEqual 18.00
+        checkout.receipt.totalSaved shouldEqual 2.00
+      }
+    }
+
+    it("includes discounts in receipt line items") {
+      postMemberWithDiscount(BigDecimal(0.1))
+      postItemResolvingToPrice("123", "Milk", 5.00, false)
+
+      Post(s"/checkouts/${id1}/total") ~> testRoutes ~> check {
+        convertJsonResponseTo[Checkout].receipt.lineItems
           .shouldEqual(Seq(
             "Milk                                     5.00",
             "   10% mbr disc                         -0.50",
-            "Eggs                                     2.79",
-            "   10% mbr disc                         -0.28",
-            "TOTAL                                    7.01",
-            "*** You saved:                           0.78"
+            "TOTAL                                    4.50",
+            "*** You saved:                           0.50"
           ))
       }
+    }
 
-      // not found
+    it("errors when checkout ID not found") {
       Post(s"/checkouts/999/total") ~> testRoutes ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[String] shouldEqual "invalid checkout id: 999"
       }
+    }
+  }
+
+  private def clearCheckouts = {
+    Post("/checkouts/clear") ~>
+      testRoutes ~> check {
+      status shouldEqual (StatusCodes.Accepted)
     }
   }
 
