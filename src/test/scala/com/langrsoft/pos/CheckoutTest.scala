@@ -22,8 +22,8 @@ class CheckoutTest extends FunSpec
     val memberDatabase = mockMemberDatabase
   }
 
-  var testRoutes: Route = Route.seal(TestCheckoutRoutes.routes())
-  var id1: String = null
+  val testRoutes: Route = Route.seal(TestCheckoutRoutes.routes())
+  var id1: String = _
 
   before {
     Post("/checkouts/clear") ~> testRoutes ~> check {}

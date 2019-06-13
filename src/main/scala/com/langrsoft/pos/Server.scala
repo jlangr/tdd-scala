@@ -10,11 +10,9 @@ import scala.io.StdIn
 object Server {
   def waitOnQuit = {
     println(s"checkout server running at http://localhost:9898/")
-    var input = ""
     do {
       println("\nEnter 'quit' to stop...")
-      input = StdIn.readLine()
-    } while (input != "quit")
+    } while (StdIn.readLine() != "quit")
   }
 
   def main(args: Array[String]): Unit = {

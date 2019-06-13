@@ -6,14 +6,28 @@ import org.scalatest.Inspectors._
 
 import scala.util.Random
 
-case class Auto(var rpm: Int = 0) {
-  def depressBrake() = {}
-  def pressStartButton() = { rpm = 950 + new Random().nextInt(100) }
-  def RPM() = { rpm }
+case class Auto(rpm: Int = 0)
+
+object Auto {
+  def depressBrake(auto: Auto) = auto
+  def pressStartButton(auto: Auto) =
+    auto.copy(rpm = 950 + new Random().nextInt(100) )
+  def RPM(auto: Auto) = { auto.rpm }
 }
 
 class Snippets extends FunSpec
   with Matchers with BeforeAndAfter {
+
+  describe("an auto") {
+    it("idles engine when started") {
+      val auto = Auto.depressBrake(Auto())
+
+      val startedAuto = Auto.pressStartButton(auto)
+
+      startedAuto.rpm shouldBe 1000 +- 50
+    }
+  }
+
   describe("something") {
     it("demonstrates some behavior") {
       // Arrange
@@ -58,18 +72,6 @@ class Snippets extends FunSpec
       it("generates late fine") {
         material.fine shouldBe (2 * Material.FineAmount)
       }
-    }
-  }
-
-  describe("an auto") {
-    val auto = Auto()
-
-    it("demonstrates some behavior") {
-      auto.depressBrake()
-
-      auto.pressStartButton()
-
-      auto.RPM() shouldBe 1000 +- 50
     }
   }
 
