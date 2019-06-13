@@ -8,11 +8,13 @@ import akka.http.scaladsl.server.Directives._
 import CheckoutJsonSupport._
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
 import scala.math.BigDecimal.RoundingMode
 
 // This trait does a couple or more core things. How might you split it up?
 trait CheckoutRoutes {
-  val checkouts: ListBuffer[Checkout] = ListBuffer[Checkout]()
+  val checkouts: ListBuffer[Checkout] = ListBuffer()
+  val checkoutMap: Map[String, Checkout] = Map()
   val itemDatabase: Inventory
   val memberDatabase: MemberDatabase
 
@@ -67,7 +69,8 @@ trait CheckoutRoutes {
   // Get rid of lies & clutter.
   // Take advantage of other constructs that already exist.
   // See how much you can improve it.
-  private def createReceipt(retrievedCheckout: Checkout) = {
+  // What? var? Are you kidding?
+  private def createReceipt(checkout: Checkout) = {
     var total = BigDecimal(0)
     var totalOfDiscountedItems = BigDecimal(0)
     var totalSaved = BigDecimal(0)
@@ -76,9 +79,9 @@ trait CheckoutRoutes {
 
     val lineItems = ListBuffer[String]()
 
-    val discount = if (retrievedCheckout.member.isEmpty) BigDecimal(0) else retrievedCheckout.member.get.discount
+    val discount = if (checkout.member.isEmpty) BigDecimal(0) else checkout.member.get.discount
 
-    retrievedCheckout.items
+    checkout.items
       .foreach(item => {
         val price = item.price
         val isExempt = item.isExemptFromDiscount
@@ -140,6 +143,7 @@ trait CheckoutRoutes {
 
   private def clearAllCheckouts() = {
     checkouts.clear()
+    checkoutMap.clear()
     complete(StatusCodes.Accepted)
   }
 
@@ -148,17 +152,18 @@ trait CheckoutRoutes {
   }
 
   private def getCheckout() = {
-    parameters('id.as[String]) { id => complete(findCheckout(id).get)}
+    parameters('id.as[String]) { id => complete(findCheckout(id).get) }
   }
 
   private def postCheckout() = {
     val checkout = Checkout(nextId().toString(), List(), Receipt(), None)
     checkouts += checkout
+    checkoutMap += checkout.id -> checkout
     complete(StatusCodes.Created, checkout.id)
   }
 
   private def findCheckout(checkoutId: String) = {
-    checkouts.toList.find(checkout => checkout.id == checkoutId)
+    checkoutMap.get(checkoutId)
   }
 
   private def completeGetTotal(retrievedCheckout: Checkout) : Route = {
@@ -175,8 +180,10 @@ trait CheckoutRoutes {
   }
 
   private def completeTotal(checkout: Checkout) = {
-    checkout.receipt = createReceipt(checkout)
-    complete(StatusCodes.Accepted, checkout)
+    val updatedCheckout = checkout.copy(receipt = createReceipt(checkout))
+    // TODO dup
+    checkoutMap += checkout.id -> updatedCheckout
+    complete(StatusCodes.Accepted, updatedCheckout)
   }
 
   private def pad(s: String, length: Int) = {
@@ -186,7 +193,8 @@ trait CheckoutRoutes {
   private def completeAddItem(retrievedCheckout: Checkout) = {
     entity(as[String]) { upc =>
       itemDatabase.retrieveItem(upc).map((item) => {
-        retrievedCheckout.items = List.concat(retrievedCheckout.items, List(item))
+        val updatedCheckout = retrievedCheckout.copy(items = List.concat(retrievedCheckout.items, List(item)))
+        checkoutMap += retrievedCheckout.id -> updatedCheckout
         complete(StatusCodes.Accepted, item)
       })
       .getOrElse(completeUpcNotFound(upc))
@@ -196,7 +204,8 @@ trait CheckoutRoutes {
   private def completeAttachMember(retrievedCheckout: Checkout) = {
     entity(as[String]) { phoneNumber =>
       memberDatabase.memberLookup(phoneNumber).map((member) => {
-        retrievedCheckout.member = Some(member)
+        val updatedCheckout = retrievedCheckout.copy(member = Some(member))
+        checkoutMap += retrievedCheckout.id -> updatedCheckout
         complete(StatusCodes.Accepted)
       })
       .getOrElse(completeMemberNotFound(phoneNumber))
