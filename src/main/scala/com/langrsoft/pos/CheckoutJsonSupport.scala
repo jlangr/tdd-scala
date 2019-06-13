@@ -12,7 +12,7 @@ case class Receipt(var total: BigDecimal = BigDecimal(0.0),
                    var totalOfDiscountedItems: BigDecimal = BigDecimal(0.0),
                    var lineItems: List[String] = List())
 
-case class Checkout(id: String, var items: List[Item], var receipt: Receipt, var member: Option[Member])
+case class Checkout(id: String, items: List[Item], receipt: Receipt, member: Option[Member])
 
 object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val aTotals = jsonFormat4(Receipt)
