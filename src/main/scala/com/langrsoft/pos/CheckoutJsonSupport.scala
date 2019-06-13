@@ -22,22 +22,26 @@ object CheckoutJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val anItem = jsonFormat5(Item)
 
   implicit object CheckoutJsonFormat extends RootJsonFormat[Checkout] {
-    def write(checkout: Checkout) = {
-      var fields: Map[String,JsValue] = Map(
-        "id" -> JsString(checkout.id),
-        "items" -> JsArray(checkout.items.map(_.toJson).toVector),
-        "receipt" -> checkout.receipt.toJson)
-      if (!checkout.member.isEmpty) fields += ("member" -> checkout.member.toJson)
-      JsObject(fields)
-    }
+    def write(checkout: Checkout) =
+      JsObject(addFields(checkout))
 
-    def read(value: JsValue): Checkout = {
+    def read(value: JsValue): Checkout =
       value.asJsObject.getFields("id", "items", "receipt", "member") match {
         case Seq(JsString(id), JsArray(items), totals, member) =>
           new Checkout(id, items.map(_.convertTo[Item]).to[List], totals.convertTo[Receipt], member.convertTo[Option[Member]])
         case Seq(JsString(id), JsArray(items), totals) =>
           new Checkout(id, items.map(_.convertTo[Item]).to[List], totals.convertTo[Receipt], None)
       }
-    }
+  }
+
+  private def addFields(checkout: Checkout) = {
+    val fields = Map(
+      "id" -> JsString(checkout.id),
+      "items" -> JsArray(checkout.items.map(_.toJson).toVector),
+      "receipt" -> checkout.receipt.toJson)
+    if (!checkout.member.isEmpty)
+      fields + ("member" -> checkout.member.toJson)
+    else
+      fields
   }
 }
