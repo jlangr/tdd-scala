@@ -19,16 +19,12 @@ class Portfolio5Test extends fixture.FunSpec
   val stockService: StockService = mock[StockService]
 
   def withOnePurchase(test: PortfolioData => Any) = {
-    var holdings = PortfolioData()
-    holdings = purchase(holdings, "BAYN", BayerSharesPurchased)
-    test(holdings)
+    test(purchase(PortfolioData(), "BAYN", BayerSharesPurchased))
   }
 
   def withMultiplePurchases(test: PortfolioData => Any) = {
-    var multipleHoldings = PortfolioData()
-    multipleHoldings = purchase(multipleHoldings, "BAYN", BayerSharesPurchased)
-    multipleHoldings = purchase(multipleHoldings, "IBM", IbmSharesPurchased)
-    test(multipleHoldings)
+    val holdings = purchase(PortfolioData(), "BAYN", BayerSharesPurchased)
+    test(purchase(holdings, "IBM", IbmSharesPurchased))
   }
 
   describe("a portfolio") {
