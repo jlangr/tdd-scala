@@ -5,7 +5,7 @@ import org.scalatest.{FunSpec, Matchers}
 import scala.collection.mutable.ListBuffer
 
 class BasicsTest extends FunSpec with Matchers {
-  describe("some javascript fundamentals") {
+  describe("some language fundamentals fundamentals") {
     ignore("supports basic math") {
       4 * 8 shouldEqual 0 // fix this
     }
