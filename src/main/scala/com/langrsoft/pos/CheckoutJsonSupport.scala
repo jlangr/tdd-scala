@@ -7,10 +7,10 @@ case class Member(id: String, phoneNumber: String, name: String, discount: BigDe
 
 case class Item(id: String, upc: String, description: String, price: BigDecimal, isExemptFromDiscount: Boolean)
 
-case class Receipt(var total: BigDecimal = BigDecimal(0.0),
-                   var totalSaved: BigDecimal = BigDecimal(0.0),
-                   var totalOfDiscountedItems: BigDecimal = BigDecimal(0.0),
-                   var lineItems: List[String] = List())
+case class Receipt(total: BigDecimal = BigDecimal(0.0),
+                   totalSaved: BigDecimal = BigDecimal(0.0),
+                   totalOfDiscountedItems: BigDecimal = BigDecimal(0.0),
+                   lineItems: List[String] = List())
 
 case class Checkout(id: String, items: List[Item], receipt: Receipt, member: Option[Member])
 
