@@ -1,13 +1,34 @@
 package com.langrsoft.slidebasis
 
+class BadBigOldClass {
+  val someValue = 123
+
+  def bigOldFunction()= {
+    val x = someComplexCalculation()
+    // ...
+    someLocalFunction(x)
+  }
+
+  def someComplexCalculation() = {
+    val that = SomeOtherBigClass()
+    val result = that.doStuff(this.someValue)
+    that.doMoreStuff(result)
+    that.answer
+  }
+
+  def someLocalFunction(x: Int) = x
+}
+
 class BigOldClass {
   val someValue = 123
 
-  def bigOldFunction(): Unit = {
+  def bigOldFunction()= {
     val x = SomeOtherBigClass().someComplexCalculation(someValue)
     // ...
+    someLocalFunction(x)
   }
 
+  def someLocalFunction(x: Int) = x
 }
 
 case class SomeOtherBigClass() {
@@ -17,7 +38,7 @@ case class SomeOtherBigClass() {
     answer
   }
 
-  def answer = 42
+  def answer: Int = 42
 
   def doMoreStuff(result: Unit) = ???
 
