@@ -24,6 +24,10 @@ class NameNormalizerTest extends FunSpec with Matchers with BeforeAndAfter {
       NameNormalizer("Jeffrey John Langr") shouldBe "Langr, Jeffrey J."
     }
 
+    ignore("does not initialize single-letter middle name") {
+      NameNormalizer("Harry S Truman") shouldBe "Truman, Harry S"
+    }
+
     ignore("includes multiple middle initials") {
       NameNormalizer("George Raymond Richard Martin") shouldBe "Martin, George R. R."
     }
